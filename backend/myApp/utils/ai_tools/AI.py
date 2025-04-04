@@ -22,18 +22,6 @@ os.environ['GH_TOKEN'] = 'ghp_123456'
 
 
 '''
-    Models:
-        代码分析 - API
-        Label生成 - API
-        Commit Msg生成 - codeTrans
-
-    其实codeTrans能够执行的任务:
-        1. 代码文档生成
-        2. 代码摘要生成
-        3. 代码评论生成
-        4. Git提及信息生成
-    ref: https://aclanthology.org/P18-1103.pdf
-
     urls:
     path("api/ai/prompt", AI.PromptGenerateCode.as_view()),
     path("api/ai/codeReview", AI.GenerateCodeReview.as_view()),
@@ -62,7 +50,7 @@ def load_codeTrans_model():
 '''
 class PromptGenerateCode(View):
     def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
+        response = {'errcode': 1, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -72,7 +60,7 @@ class PromptGenerateCode(View):
 
         reply = simple_llm_generate(text)
 
-        response = {'reply': reply}
+        response = {'errcode': 0, 'reply': reply}
 
         return JsonResponse(response)
 
@@ -81,7 +69,7 @@ class PromptGenerateCode(View):
 '''
 class GenerateCodeReview(View):
     def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
+        response = {'errcode': 1, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -89,9 +77,11 @@ class GenerateCodeReview(View):
         
         text = kwargs.get("code")
 
-        reply = simple_llm_generate(text)
+        prefix = "please help me analyze the following code, and generate code review briefly.\n"
 
-        response = {'reply': reply}
+        reply = simple_llm_generate(prefix + text)
+        print(f"{reply}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        response = {'errcode': 0, 'data': reply}
 
         return JsonResponse(response)
 
@@ -101,7 +91,7 @@ class GenerateCodeReview(View):
 '''
 class GenerateUnitTest(View):
     def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
+        response = {'errcode': 1, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -113,7 +103,7 @@ class GenerateUnitTest(View):
 
         reply = simple_llm_generate(conditional_prompt + text)
 
-        response = {'reply': reply}
+        response = {'errcode': 0, 'reply': reply}
 
         return JsonResponse(response)
 
@@ -123,7 +113,7 @@ class GenerateUnitTest(View):
 '''
 class SummarizeDiscussion(View):
     def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
+        response = {'errcode': 1, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -137,23 +127,25 @@ class SummarizeDiscussion(View):
             response = {'errcode': 1, 'message': "keys not found"}
             return JsonResponse(response)
 
-        user = User.objects.get(user_id=uid)
+        user = User.objects.get(id=uid)
 
         text = get_room_content_api(rid, user)
         text = formatting_discussion_context(text)
 
-        conditional_prompt = "Please summarize the following contexts briefly and refine the response by Question-Answer pair. " \
+        prompt_stage_1 = "Please summarize the following contexts briefly as possible"
+        summary = simple_llm_generate(prompt_stage_1 + text)
+
+        response = {'errcode': 0, 'reply': summary}
+
+        prompt_stage_2 = "Given the summary of a discussion, you should refine and transform it by Question-Answer pair format. " \
         "We wish the response belikes multi-turns conversation, " \
         "please explicitly use signals like <Question>, <Answer> and <end> to represent the start and end" \
         "Hence, your answer should follows: " \
         "<Question>: sth. <end> <Answer>: sth. <end> <Question>: sth. <end> <Answer>: sth. <end> ..."
+        qa_reply = simple_llm_generate(prompt_stage_2 + summary)
 
-        reply = simple_llm_generate(conditional_prompt + text)
-
-        qa_pairs = knowledge_formatting(reply)
+        qa_pairs = knowledge_formatting(qa_reply)
         save_to_knowledge_database(pid, qa_pairs)
-
-        response = {'reply': reply}
 
         return JsonResponse(response)
 
@@ -164,7 +156,7 @@ class SummarizeDiscussion(View):
 '''
 class ChatWithProjectExpert(View):
     def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
+        response = {'errcode': 1, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -191,7 +183,7 @@ class ChatWithProjectExpert(View):
 
         reply, context = memorized_llm_generate(text, prefixs)
 
-        response = {'reply': reply, "context": context_encode(context)}
+        response = {'errcode': 0, "reply": reply, "context": context_encode(context)}
         print(response)
         return JsonResponse(response)
 
@@ -201,7 +193,7 @@ class ChatWithProjectExpert(View):
 '''
 class GenerateLabelwithDiscription(View):
     def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
+        response = {'errcode': 1, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -213,7 +205,7 @@ class GenerateLabelwithDiscription(View):
 
         reply = simple_llm_generate(conditional_prompt_pre + text + conditional_prompt_post)
 
-        response = {'reply': reply}
+        response = {'errcode': 0, 'reply': reply}
 
         return JsonResponse(response)
 
