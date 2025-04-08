@@ -1,0 +1,132 @@
+diff --git a/backend/djangoProject/settings.py b/backend/djangoProject/settings.py
+index 523db2c..0eea887 100644
+--- a/backend/djangoProject/settings.py
++++ b/backend/djangoProject/settings.py
+@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-2bo1p8f=2rybk-&)5qo$5%ahm^l0&ht0z7qv5(8=1*=1kc3^^s
+ DEBUG = True
+ 
+ ALLOWED_HOSTS = ['*']
+-ALLOWED_HOSTS = ['192.168.1.*','192.168.0.189','114.116.202.116','localhost','127.0.0.1','192.168.xx.xxx']
++ALLOWED_HOSTS = ['192.168.1.*','192.168.0.189','127.0.0.1','localhost','127.0.0.1','192.168.xx.xxx']
+ 
+ 
+ # 配置 MEDIA_ROOT 作为你上传文件在服务器中的基本路径
+diff --git "a/backend/myApp/migrations/__init__.py\357\200\215" "b/backend/myApp/migrations/__init__.py\357\200\215"
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/frontend/package.json b/frontend/package.json
+index c055d6b..ca01cf4 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -16,6 +16,7 @@
+     "babel-plugin-prismjs": "^2.1.0",
+     "chart.js": "^4.2.1",
+     "codemirror": "^5.65.13",
++    "dayjs": "^1.11.13",
+     "dhtmlx-gantt": "^8.0.8",
+     "echarts": "^5.4.2",
+     "element-ui": "^2.15.13",
+@@ -27,8 +28,10 @@
+     "mavon-editor": "^2.10.4",
+     "naive-ui": "^2.34.3",
+     "parse-diff": "^0.11.1",
++    "prismjs": "^1.30.0",
+     "qs": "^6.11.1",
+-    "v-code-diff": "^1.11.0",
++    "sass": "^1.86.3",
++    "v-code-diff": "^1.13.1",
+     "v-gantt-chart": "^1.6.3",
+     "vue": "^2.7.7",
+     "vue-axios": "^3.5.2",
+diff --git a/frontend/src/main.js b/frontend/src/main.js
+index 07be297..8467542 100644
+--- a/frontend/src/main.js
++++ b/frontend/src/main.js
+@@ -32,7 +32,7 @@ VueMarkdownEditor.use(vuepressTheme, {
+     // md.set(option).use(plugin);
+   },
+ });
+-axios.defaults.baseURL = 'http://114.116.202.116:8000/'
++axios.defaults.baseURL = 'http://127.0.0.1:8000/'
+ Vue.use(ElementUI, axios, VueAxios)
+ axios.defaults.withCredentials = true;
+ Vue.use(mavonEditor);
+diff --git a/frontend/src/utils/request.js b/frontend/src/utils/request.js
+index ac8e976..494a992 100644
+--- a/frontend/src/utils/request.js
++++ b/frontend/src/utils/request.js
+@@ -1,7 +1,7 @@
+ import axios from 'axios'
+ 
+ const request = axios.create({
+-     baseURL: 'http://114.116.202.116:8000', // url = base url + request url
++     baseURL: 'http://127.0.0.1:8000', // url = base url + request url
+     // send cookies when cross-domain requests
+     timeout: 5000 // request timeout
+ });
+diff --git a/frontend/src/views/chat/Chat.vue b/frontend/src/views/chat/Chat.vue
+index 92d6982..23023de 100644
+--- a/frontend/src/views/chat/Chat.vue
++++ b/frontend/src/views/chat/Chat.vue
+@@ -222,8 +222,8 @@ export default {
+           })
+         },
+         initWS(rid) {
+-          console.log('initWS: connecting to ws://114.116.202.116/:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
+-          const socket = new WebSocket('ws://114.116.202.116:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
++          console.log('initWS: connecting to ws://127.0.0.1/:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
++          const socket = new WebSocket('ws://127.0.0.1:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
+ 
+           const onopen = (e) => {
+             console.log('socket opened')
+diff --git a/frontend/vite.config.js b/frontend/vite.config.js
+index eb662c8..fe4e2b1 100644
+--- a/frontend/vite.config.js
++++ b/frontend/vite.config.js
+@@ -19,26 +19,27 @@ export default defineConfig({
+       echarts: 'echarts/dist/echarts.js', // 支持echarts绘图
+     }
+   },
+-  // server: {
++  server: {
+     
+-  //   host: '0.0.0.0',
+-  //   port: 7999,
+-  //   open:false,
+-  //   proxy: {
+-  //     '/api': {
+-  //       // // target: 'http://114.116.219.29:8000',
+-  //       target:  'http://104.208.78.33:8000/',
+-  //       // target: 'http://127.0.0.1:8000/',
+-  //       changeOrigin: true,
+-  //       rewrite: path => path
+-  //     },
+-  //     '/HPImageArchive.aspx': {
+-  //       target: 'https://cn.bing.com/',
+-  //       changeOrigin: true,
+-  //       rewrite: path => path
+-  //     }
+-  //   }
+-  // }, 
++    host: '0.0.0.0',
++    port: 7999,
++    open:false,
++    proxy: {
++      '/api': {
++        // // target: 'http://114.116.219.29:8000',
++        // target:  'http://104.208.78.33:8000/',
++        //target: 'http://127.0.0.1:8000',
++        target: 'http://127.0.0.1:8000/',
++        changeOrigin: true,
++        rewrite: path => path
++      },
++      '/HPImageArchive.aspx': {
++        target: 'https://cn.bing.com/',
++        changeOrigin: true,
++        rewrite: path => path
++      }
++    }
++  }, 
+   preview: {
+     host: '0.0.0.0',
+     port: 8000,

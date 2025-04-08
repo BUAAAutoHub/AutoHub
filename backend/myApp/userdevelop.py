@@ -341,7 +341,6 @@ class GetBindRepos(View):
                     "-H", f"Authorization: token {token}",
                     f"/repos/{repo.remote_path}"
                 ]
-                print(44444444)
                 result = subprocess.run(command, capture_output=True, text=True,
                                         cwd=repo.local_path,check=True)
                 desc = json.loads(result.stdout)
@@ -355,6 +354,9 @@ class GetBindRepos(View):
                                          "repoIntroduction": desc["description"]})
         except Exception as e:
             print(e)
+            print("Command failed with exit code:", e.returncode)
+            print("Output:", e.output)
+            print("Error:", e.stderr)
             return JsonResponse(genUnexpectedlyErrorInfo(response, e))
 
         return JsonResponse(response)

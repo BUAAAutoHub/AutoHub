@@ -29,7 +29,9 @@ export default {
           }
       )
           .then((res) => { this.bindingInProgress = false; this.updateBindRepos()})
-          .catch((err) => { alert('哦不，好像绑定失败了！'); this.bindingInProgress = false; })
+          .catch((err) => { alert('哦不，好像绑定失败了！'); this.bindingInProgress = false;
+            console.log(err);
+           })
     },
       bindWhole() {
           this.bindingInProgress = true
