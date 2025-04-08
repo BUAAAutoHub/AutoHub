@@ -1,0 +1,10 @@
+django
+pymysql
+daphne
+django-cors-headers
+channels
+requests
+json5
+openai
+transformers
+nltk

@@ -1,6 +1,0 @@
-# 屏蔽 model
-backend/myApp/codeTrans
-# 将小模型传入
-!backend/myApp/codeTrans/base
-# 屏蔽 .idea
-*.idea
