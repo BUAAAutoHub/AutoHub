@@ -1,7 +1,5 @@
 import subprocess
 
-import requests
-from openai import OpenAI
 import os
 from django.http import JsonResponse
 from django.views import View
@@ -14,6 +12,8 @@ from myApp.apps.projects.userdevelop import genResponseStateInfo, isUserInProjec
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, SummarizationPipeline
 import nltk
 from nltk.tokenize import WordPunctTokenizer
+
+from ai_utils import *
 
 pipeline = None
 os.environ['GH_TOKEN'] = 'ghp_123456'
@@ -70,29 +70,40 @@ text = """class getEmail(View):
         return JsonResponse(response)"""
 
 
-def request_trash(messages):
-    url = 'https://api.zhizengzeng.com/v1/chat/completions'
+class Save_QA(View):
+    def post(self, request):
+        pass
 
-    headers = {
 
-        'Content-Type': 'application/json',
+class chatBot(View):
+    def post(self, request):
+        response = {'errcode': 0, 'message': "404 not success"}
+        try:
+            kwargs: dict = json.loads(request.body)
+        except Exception:
+            return JsonResponse(response)
 
-        'Authorization': 'Bearer sk-123456'
-    }
+        project_id = kwargs.get("project_id")
+        query = kwargs.get("query")
 
-    data = {
+        Q_A = load_prior_knowledge(project_id)
+        messages = [
+            {"role": "system", "content": "You are a ChatBot about this project. All you know about the project are saved as the <question-answer> tempulate:" + Q_A},
+            {"role": "user", "content": "Please answer the question: " + query + "accroding to what you know about this project"},
+        ]
+        chat = request_trash(messages)
+        if "error" in chat:
+            error_message = chat['error'].get('message', 'Unknown error')
+            response['errcode'] = -1
+            response['message'] = f"Error from service: {error_message}"
+            return JsonResponse(response)
+        response['errcode'] = 0
+        response['message'] = "success"
+        response['data'] = chat["choices"][0]["message"]["content"]
 
-        "model": "gpt-3.5-turbo",
+        return JsonResponse(response)
 
-        "messages": messages,
 
-        "stream": False
-
-    }
-
-    response = requests.post(url, json=data, headers=headers)
-
-    return response.json()
 
 
 class CodeReview(View):

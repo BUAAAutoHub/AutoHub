@@ -1,5 +1,27 @@
 <template>
   <v-app id="main_page">
+    <!-- 将悬浮按钮移到 v-app 内部 -->
+    <div class="floating-create-group">
+      <v-hover v-slot:default="{ isHovering, props }">
+        <div class="floating-button-wrapper" v-bind="props">
+          <v-btn
+            icon
+            class="floating-btn"
+            color="primary"
+            elevation="10"
+          >
+            <v-icon>mdi-plus</v-icon>
+          </v-btn>
+
+          <transition name="slide-fade">
+            <div v-if="isHovering" class="floating-panel" @click="createGroup">
+              创建群聊
+            </div>
+          </transition>
+        </div>
+      </v-hover>
+    </div>
+
     <v-app-bar app clipped-left ref="appBar" color="white" dark extension-height="50" :absolute="true" :src=topic>
       <v-toolbar-title style="font-weight: bold"> <span style="font-size: 32px;">JiHub</span><span v-if="existManager()">
           - Admin
@@ -600,7 +622,8 @@ export default {
       checkNoReadNotice: false,
       arr: [],
       whatisclicked: null,
-      codeReviewExpanded: false
+      codeReviewExpanded: false,
+      showGroupMenu: false, // 新增悬浮菜单显示状态
     };
   },
   beforeUpdate() {
@@ -1018,6 +1041,23 @@ export default {
           }
         }
       }
+    },
+    createGroup() {
+      axios.post('/api/groups/create/', {
+        userId: this.user.id,
+        groupName: '新群聊' // 可根据需求添加表单输入
+      })
+      .then(res => {
+        if(res.data.success) {
+          this.$message.success('群聊创建成功');
+          // 可添加跳转到群聊页面的逻辑
+          // this.$router.push(`/chat/${res.data.groupId}`);
+        }
+      })
+      .catch(error => {
+        console.error('创建失败:', error);
+        this.$message.error('创建群聊失败');
+      });
     },
     getTopicColor: topicSetting.getColor,
     getDarkColor: topicSetting.getDarkColor,
