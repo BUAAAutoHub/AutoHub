@@ -1,6 +1,5 @@
 import subprocess
 
-import openai
 import requests
 from openai import OpenAI
 import os
@@ -9,8 +8,8 @@ from django.views import View
 import json
 import datetime
 
-from myApp.models import *
-from myApp.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
+from myApp.apps.models import *
+from myApp.apps.projects.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
     genUnexpectedlyErrorInfo, validate_token
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, SummarizationPipeline
 import nltk
@@ -20,10 +19,24 @@ pipeline = None
 os.environ['GH_TOKEN'] = 'ghp_123456'
 
 
+'''
+    Models:
+        代码分析 - API
+        Label生成 - API
+        Commit Msg生成 - codeTrans
+
+    其实codeTrans能够执行的任务：
+        1. 代码文档生成
+        2. 代码摘要生成
+        3. 代码评论生成
+        4. Git提及信息生成
+    ref: https://aclanthology.org/P18-1103.pdf
+'''
+
+
 def load_codeTrans_model():
     global pipeline
     if pipeline is None:
-        # model_path = "/home/ptwang/Code/SE-SMP-backend/myApp/codeTrans/base/"
         model_path = "/root/project/SE-SMP-backend/myApp/codeTrans/base/"
         print("model path:", model_path)
         pipeline = SummarizationPipeline(
@@ -33,7 +46,6 @@ def load_codeTrans_model():
         )
 
 
-# openai.organization = "org-fBoqj45hvJisAEGMR5cvPnDS"
 api_key = "sk-proj-123456"
 
 text = """class getEmail(View):
@@ -58,15 +70,6 @@ text = """class getEmail(View):
         return JsonResponse(response)"""
 
 
-# model = openai.ChatCompletion.create(
-#     model="gpt-3.5-turbo",
-#     messages=[
-#         {"role": "system", "content": "You are a helpful assistant."},
-#         {"role": "user", "content": "请针对以下代码给我生成单元测试代码," + text+", speak English"},
-#     ]
-# )
-# print(model)
-
 def request_trash(messages):
     url = 'https://api.zhizengzeng.com/v1/chat/completions'
 
@@ -90,33 +93,6 @@ def request_trash(messages):
     response = requests.post(url, json=data, headers=headers)
 
     return response.json()
-
-
-class UnitTest(View):
-    def post(self, request):
-        response = {'errcode': 0, 'message': "404 not success"}
-        try:
-            kwargs: dict = json.loads(request.body)
-        except Exception:
-            return JsonResponse(response)
-
-        text = kwargs.get("code")
-
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user",
-             "content": "Please generate unit test code for the following code: " + text +
-                        ", and provide the tests in English."}]
-        chat = request_trash(messages)
-        if "error" in chat:
-            error_message = chat['error'].get('message', 'Unknown error')
-            response['errcode'] = -1
-            response['message'] = f"Error from service: {error_message}"
-            return JsonResponse(response)
-        response['errcode'] = 0
-        response['message'] = "success"
-        response['data'] = chat["choices"][0]["message"]["content"]
-        return JsonResponse(response)
 
 
 class CodeReview(View):
@@ -258,3 +234,31 @@ class GenerateLabel(View):
         response['message'] = "success"
         response['data'] = chat["choices"][0]["message"]["content"]
         return JsonResponse(response)
+
+
+
+# class UnitTest(View):
+#     def post(self, request):
+#         response = {'errcode': 0, 'message': "404 not success"}
+#         try:
+#             kwargs: dict = json.loads(request.body)
+#         except Exception:
+#             return JsonResponse(response)
+
+#         text = kwargs.get("code")
+
+#         messages = [
+#             {"role": "system", "content": "You are a helpful assistant."},
+#             {"role": "user",
+#              "content": "Please generate unit test code for the following code: " + text +
+#                         ", and provide the tests in English."}]
+#         chat = request_trash(messages)
+#         if "error" in chat:
+#             error_message = chat['error'].get('message', 'Unknown error')
+#             response['errcode'] = -1
+#             response['message'] = f"Error from service: {error_message}"
+#             return JsonResponse(response)
+#         response['errcode'] = 0
+#         response['message'] = "success"
+#         response['data'] = chat["choices"][0]["message"]["content"]
+#         return JsonResponse(response)
