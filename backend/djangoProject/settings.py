@@ -81,7 +81,6 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
          'DIRS': [BASE_DIR / 'templates'],
-#        'DIRS': [BASE_DIR/ '../SE-SMP-frontend/dist'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -171,7 +170,7 @@ USE_L10N = True
 
 STATICFILES_DIRS = [
     #os.path.join(BASE_DIR, "template/dist/static"),
-    os.path.join(BASE_DIR, "../SE-SMP-frontend/dist/"),  # 加上这条
+    os.path.join(BASE_DIR, "../frontend/dist/"),  # 加上这条
 ]   
 
 STATIC_URL = '/static/'
@@ -235,4 +234,3 @@ def response_json(errcode, message=None, data=None):
 CORS_ALLOW_METHODS = [
     'DELETE', 'GET', 'POST', 'PUT', 'PATCH', 'OPTIONS', 'VIEW'
 ]
-

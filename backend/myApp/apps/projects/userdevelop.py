@@ -17,7 +17,7 @@ from django.db.models import Q
 
 repo_semaphore = {}
 os.environ['GH_TOKEN'] = 'ghp_123456'
-os.environ["HOME"] = "/root/project/SE-SMP-backend"
+os.environ["HOME"] = BASE_DIR
 # def getSemaphore(repoId):
 #     repoId = str(repoId)
 #     if not repo_semaphore.__contains__(repoId):

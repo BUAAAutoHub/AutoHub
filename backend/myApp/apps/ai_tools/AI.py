@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views import View
 import json
 import datetime
-
+from djangoProject.settings import BASE_DIR
 from myApp.apps.models import *
 from myApp.apps.projects.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
     genUnexpectedlyErrorInfo, validate_token
@@ -37,7 +37,7 @@ os.environ['GH_TOKEN'] = 'ghp_123456'
 def load_codeTrans_model():
     global pipeline
     if pipeline is None:
-        model_path = "/root/project/SE-SMP-backend/myApp/codeTrans/base/"
+        model_path = BASE_DIR + "/myApp/codeTrans/base/"
         print("model path:", model_path)
         pipeline = SummarizationPipeline(
             model=AutoModelForSeq2SeqLM.from_pretrained(model_path),
@@ -203,7 +203,7 @@ class GenerateCommitMessage(View):
         # chat = request_trash(messages)
 
         load_codeTrans_model()
-        nltk.data.path.append("/root/project/SE-SMP-backend/myApp/codeTrans/tokenizers/")
+        nltk.data.path.append(BASE_DIR + "/myApp/codeTrans/tokenizers/")
         # nltk.data.path.append("/home/ptwang/Code/SE-SMP-backend/myApp/codeTrans/tokenizers/")  # check here
         tokenized_list = WordPunctTokenizer().tokenize(diff.stdout)
         tokenized_code = ' '.join(tokenized_list)
