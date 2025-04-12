@@ -132,3 +132,5 @@ DigiCertGlobalRootCA.crt.pem
 migrations/0001_initial.py
 userRepos/
 files/
+analyze
+refactor.py
