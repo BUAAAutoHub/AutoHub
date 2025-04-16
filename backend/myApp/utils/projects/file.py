@@ -1,11 +1,13 @@
+import json
+import os
+
 from django.http import HttpResponse
 from django.http import StreamingHttpResponse, FileResponse
-import json
 from django.views import View
 from django.http import JsonResponse
 from myApp.models import *
 from django.core.exceptions import ObjectDoesNotExist
-import os
+
 
 
 class uploadFile(View):

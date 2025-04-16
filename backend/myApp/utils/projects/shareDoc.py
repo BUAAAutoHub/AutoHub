@@ -1,17 +1,17 @@
 import struct
-
-from django.http import JsonResponse, HttpResponse
-from django.core import serializers
-from django.views import View
-from myApp.models import *
-from djangoProject.settings import DBG, USER_REPOS_DIR, BASE_DIR
 import json
 import os
 import shutil
 import sys
 import subprocess
 import json5
-from myApp.userdevelop import *
+
+from django.http import JsonResponse, HttpResponse
+from django.core import serializers
+from django.views import View
+from myApp.models import *
+from djangoProject.settings import DBG, USER_REPOS_DIR, BASE_DIR
+from myApp.utils.projects.userdevelop import *
 
 
 def userDocListTemplate(userId, projectId, table):
@@ -62,7 +62,8 @@ class UserDocList(View):
         except Exception:
             return JsonResponse(response)
         try:
-            response = userDocListTemplate(kwargs.get('userId'), kwargs.get('projectId'), UserAccessDoc)
+            response = userDocListTemplate(kwargs.get('userId'), kwargs.get('projectId'),
+                UserAccessDoc)
         except Exception as e:
             return JsonResponse({'message': str(e), "errcode": -1})
         return JsonResponse(response)
@@ -76,7 +77,8 @@ class UserCollectDocList(View):
         except Exception:
             return JsonResponse(response)
         try:
-            response = userDocListTemplate(kwargs.get('userId'), kwargs.get('projectId'), UserCollectDoc)
+            response = userDocListTemplate(kwargs.get('userId'), kwargs.get('projectId'),
+                UserCollectDoc)
         except Exception as e:
             return JsonResponse({'message': str(e), "errcode": -1})
         return JsonResponse(response)

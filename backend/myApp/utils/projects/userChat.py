@@ -1,6 +1,7 @@
+import json
+
 from myApp.models import *
 from djangoProject.settings import response_json
-import json
 
 SUCCESS = 0
 

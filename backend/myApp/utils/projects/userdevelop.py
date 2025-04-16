@@ -1,23 +1,20 @@
 import mimetypes
-import struct
 import datetime
 import subprocess
 import requests
-from django.http import JsonResponse, HttpResponse, FileResponse
-from django.core import serializers
+import json
+import os
+import sys
+
+from django.http import JsonResponse, FileResponse
 from django.views import View
 from myApp.models import *
 from djangoProject.settings import DBG, USER_REPOS_DIR, BASE_DIR
-import json
-import os
-import shutil
-import sys
-import json5
 from django.db.models import Q
 
 repo_semaphore = {}
 os.environ['GH_TOKEN'] = 'ghp_123456'
-os.environ["HOME"] = BASE_DIR
+# os.environ["HOME"] = BASE_DIR
 # def getSemaphore(repoId):
 #     repoId = str(repoId)
 #     if not repo_semaphore.__contains__(repoId):

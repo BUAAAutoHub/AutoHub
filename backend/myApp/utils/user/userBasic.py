@@ -5,7 +5,7 @@ from djangoProject.settings import response_json
 import datetime
 import json
 
-from myApp.userdevelop import genResponseStateInfo
+from myApp.utils.projects.userdevelop import genResponseStateInfo
 
 # 返回给前端的 ErrorCode
 Success = 0

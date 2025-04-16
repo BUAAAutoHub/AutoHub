@@ -1,4 +1,9 @@
 import struct
+import json
+import os
+import shutil
+import sys
+import random
 
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
@@ -6,12 +11,7 @@ from django.core import serializers
 from django.views import View
 from myApp.models import *
 from djangoProject.settings import DBG, USER_REPOS_DIR
-import json
-import os
-import shutil
-import sys
-from myApp.userdevelop import genResponseStateInfo, genUnexpectedlyErrorInfo
-import random
+from myApp.utils.projects.userdevelop import genResponseStateInfo, genUnexpectedlyErrorInfo
 from hashlib import sha256
 
 validUserStatus = {"A", "B"}
@@ -62,7 +62,8 @@ class ShowUsers(View):
         allUsers = User.objects.all()
         for user in allUsers:
             users.append({"id": user.id, "name": user.name, "email": user.email,
-                          "registerTime": user.create_time, "status": user.status, "auth": user.auth})
+                          "registerTime": user.create_time, "status": user.status, "auth":
+                              user.auth})
 
         response["users"] = users
         return JsonResponse(response)
@@ -87,7 +88,8 @@ class ShowAdmins(View):
             if user.auth == User.STUDENT:
                 continue
             users.append({"id": user.id, "name": user.name, "email": user.email,
-                          "registerTime": user.create_time, "status": user.status, "auth": user.auth})
+                          "registerTime": user.create_time, "status": user.status, "auth":
+                              user.auth})
 
         response["users"] = users
         return JsonResponse(response)
@@ -112,7 +114,8 @@ class ShowAssistants(View):
             if user.auth != User.ASSISTANT:
                 continue
             users.append({"id": user.id, "name": user.name, "email": user.email,
-                          "registerTime": user.create_time, "status": user.status, "auth": user.auth})
+                          "registerTime": user.create_time, "status": user.status, "auth":
+                              user.auth})
 
         response["users"] = users
         return JsonResponse(response)

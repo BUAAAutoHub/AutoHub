@@ -6,14 +6,14 @@ from django.views import View
 import json
 import datetime
 from djangoProject.settings import BASE_DIR
-from myApp.apps.models import *
-from myApp.apps.projects.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
+from myApp.models import *
+from myApp.utils.projects.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
     genUnexpectedlyErrorInfo, validate_token
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, SummarizationPipeline
 import nltk
 from nltk.tokenize import WordPunctTokenizer
 
-from ai_utils import *
+from myApp.utils.ai_tools.ai_utils import *
 
 pipeline = None
 os.environ['GH_TOKEN'] = 'ghp_123456'
@@ -248,28 +248,28 @@ class GenerateLabel(View):
 
 
 
-# class UnitTest(View):
-#     def post(self, request):
-#         response = {'errcode': 0, 'message': "404 not success"}
-#         try:
-#             kwargs: dict = json.loads(request.body)
-#         except Exception:
-#             return JsonResponse(response)
+class UnitTest(View):
+    def post(self, request):
+        response = {'errcode': 0, 'message': "404 not success"}
+        try:
+            kwargs: dict = json.loads(request.body)
+        except Exception:
+            return JsonResponse(response)
 
-#         text = kwargs.get("code")
+        text = kwargs.get("code")
 
-#         messages = [
-#             {"role": "system", "content": "You are a helpful assistant."},
-#             {"role": "user",
-#              "content": "Please generate unit test code for the following code: " + text +
-#                         ", and provide the tests in English."}]
-#         chat = request_trash(messages)
-#         if "error" in chat:
-#             error_message = chat['error'].get('message', 'Unknown error')
-#             response['errcode'] = -1
-#             response['message'] = f"Error from service: {error_message}"
-#             return JsonResponse(response)
-#         response['errcode'] = 0
-#         response['message'] = "success"
-#         response['data'] = chat["choices"][0]["message"]["content"]
-#         return JsonResponse(response)
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user",
+             "content": "Please generate unit test code for the following code: " + text +
+                        ", and provide the tests in English."}]
+        chat = request_trash(messages)
+        if "error" in chat:
+            error_message = chat['error'].get('message', 'Unknown error')
+            response['errcode'] = -1
+            response['message'] = f"Error from service: {error_message}"
+            return JsonResponse(response)
+        response['errcode'] = 0
+        response['message'] = "success"
+        response['data'] = chat["choices"][0]["message"]["content"]
+        return JsonResponse(response)

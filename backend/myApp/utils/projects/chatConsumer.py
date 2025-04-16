@@ -34,7 +34,8 @@ class ChatConsumer(WebsocketConsumer):
         assert text_data is not None
         # read the message from webcokect scope['text']['message']
         ws_json_data = json.loads(text_data)
-        message_content, send_user_id = str(ws_json_data['message']), int(ws_json_data['sender'])
+        message_content, send_user_id = str(ws_json_data['message']),
+        int(ws_json_data['sender'])
 
         send_user = User.objects.get(id=send_user_id)
         send_time = datetime.datetime.now()

@@ -1,17 +1,17 @@
 import struct
+import os
+import shutil
+import sys
+import subprocess
+import json5
+import json
 
 from django.http import JsonResponse, HttpResponse
 from django.core import serializers
 from django.views import View
 from myApp.models import *
 from djangoProject.settings import DBG, USER_REPOS_DIR, BASE_DIR
-import json
-import os
-import shutil
-import sys
-import subprocess
-import json5
-from myApp.userdevelop import *
+from myApp.utils.projects.userdevelop import *
 
 
 # Functions for backend calls

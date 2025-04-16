@@ -1,14 +1,13 @@
-from django.http import JsonResponse
-from django.utils import timezone
-
-from myApp.models import *
-from django.views import View
-from myApp.userChat import delete_user_from_groups
-from django.db.models import Q
 import json
 import datetime
 
-from myApp.userdevelop import genResponseStateInfo
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views import View
+from django.db.models import Q
+from myApp.models import *
+from myApp.utils.projects.userdevelop import genResponseStateInfo
+from myApp.utils.projects.userChat import delete_user_from_groups
 
 validTaskLabel = ["A", "B", "C", "D", "E"]
 validTaskLabelContent = ["BUG", "ENHANCEMENT", "FEATURE", "DUPLICATE", "QUESTION"]
@@ -61,10 +60,12 @@ class newProject(View):
         projectName = kwargs.get("projectName")
         projectIntro = kwargs.get("projectIntro")
 
-        project = Project.objects.create(name=projectName, outline=projectIntro, manager_id=request.user, status='B')
+        project = Project.objects.create(name=projectName, outline=projectIntro, manager_id=
+            request.user, status='B')
         project.save()
 
-        UserProject.objects.create(user_id=request.user, project_id=project, role=UserProject.DEVELOPER)
+        UserProject.objects.create(user_id=request.user, project_id=project, role=
+            UserProject.DEVELOPER)
         response['errcode'] = 0
         response['message'] = "success"
         return JsonResponse(response)
@@ -81,7 +82,8 @@ class watchAllProject(View):
                 "projectName": i.project_id.name,
                 "projectIntro": i.project_id.outline,
                 "state": i.project_id.status,
-                "deadline": str(i.project_id.create_time.year) + "-" + str(i.project_id.create_time.month) + "-" + str(
+                "deadline": str(i.project_id.create_time.year) + "-" +
+                    str(i.project_id.create_time.month) + "-" + str(
                     i.project_id.create_time.day),
                 "managerId": i.project_id.manager_id.id,
                 "managerName": i.project_id.manager_id.name,
@@ -272,8 +274,9 @@ class addSubTask(View):
         # use time[0] as year time[1] as month time[2] as day
         deadline = datetime.datetime(year=year, month=month, day=day)
         startTime = datetime.datetime(year=y, month=m, day=d)
-        task = Task.objects.create(name=name, deadline=deadline, contribute_level=contribute, project_id_id=projectId,
-                                   parent_id_id=belongTask, start_time=startTime, task_label=Label_Content_KV[label],
+        task = Task.objects.create(name=name, deadline=deadline, contribute_level=contribute,
+                                   project_id_id=projectId,parent_id_id=belongTask, 
+                                   start_time=startTime, task_label=Label_Content_KV[label],
                                    outline=outline)
         task.status = Task.NOTSTART
         task.save()
@@ -281,7 +284,8 @@ class addSubTask(View):
         UserTask.objects.create(user_id_id=managerId, task_id=task)
         project = Project.objects.get(id=projectId)
         content = f"您有新任务\"{task.name}\"。该任务属于项目\"{project.name}\""
-        msg = Notice.objects.create(receiver_id=User.objects.get(id=managerId), read=Notice.N, content=content)
+        msg = Notice.objects.create(receiver_id=User.objects.get(id=managerId), read=Notice.N,
+            content=content)
         msg.save()
 
         response['errcode'] = 0
@@ -318,7 +322,8 @@ class showTaskList(View):
                            "intro": j.outline, 'managerId': UserTask.objects.get(task_id=j).user_id_id,
                            "managerName":UserTask.objects.get(task_id=j).user_id.name,
                            "subTaskName": j.name, "subTaskId": j.id, "start_time": j.start_time,
-                           "complete_time": j.complete_time, "subTaskLabel": getLabelName(j.task_label),
+                           "complete_time": j.complete_time, "subTaskLabel":
+                               getLabelName(j.task_label),
                            "subTaskOutline": j.outline}
 
                 if j.status != Task.COMPLETED:
@@ -565,7 +570,8 @@ class getTaskReviews(View):
 
             user = review.user_id
             reviews.append(
-                {"userId": user.id, "userName": user.name, "content": review.content, "createTime": review.create_time})
+                {"userId": user.id, "userName": user.name, "content": review.content, "createTime":
+                    review.create_time})
         response['errcode'] = 0
         response['message'] = "get task reviews ok"
         response['data'] = {"reviews": reviews}
@@ -702,7 +708,8 @@ class modifyRole(View):
             return JsonResponse(response)
 
         role = kwargs.get("role", "")
-        if role not in [UserProject.ADMIN, UserProject.NORMAL, UserProject.DEVELOPER, UserProject.REVIEWER]:
+        if role not in [UserProject.ADMIN, UserProject.NORMAL, UserProject.DEVELOPER,
+            UserProject.REVIEWER]:
             response['errcode'] = 1
             response['message'] = "role not exist"
             response['data'] = None
@@ -767,7 +774,8 @@ class addMember(View):
             return JsonResponse(response)
         personList = UserProject.objects.filter(project_id_id=projectId)
         for person in personList:
-            Cooperate.objects.create(user1_id_id=person.user_id.id, user2_id_id=peopleId, project_id_id=projectId)
+            Cooperate.objects.create(user1_id_id=person.user_id.id, user2_id_id=peopleId,
+                project_id_id=projectId)
             Cooperate.objects.create(user1_id_id=peopleId, user2_id_id=peopleId, project_id_id=projectId)
         UserProject.objects.create(user_id_id=peopleId, project_id_id=projectId, role=UserProject.NORMAL)
         response['errcode'] = 0
@@ -1273,7 +1281,8 @@ class showCooperate(View):
         pairs = Cooperate.objects.filter(project_id=projectId)
         my_set = set()
         for pair in pairs:
-            if (pair.user1_id_id, pair.user2_id_id) in my_set or (pair.user2_id_id, pair.user1_id_id) in my_set:
+            if (pair.user1_id_id, pair.user2_id_id) in my_set or (pair.user2_id_id,
+                pair.user1_id_id) in my_set:
                 continue
             my_set.add((pair.user1_id_id, pair.user2_id_id))
             my_set.add((pair.user2_id_id, pair.user1_id_id))

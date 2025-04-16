@@ -17,10 +17,12 @@ Including another URLconf
 # from django.contrib import admin
 from django.urls import path, include
 
-from myApp import userdevelop, manager, userBasic, userPlan, debug, AI, shareDoc, file, mail
-from myApp import notice, userChat
+from myApp.utils.projects import userdevelop, manager, userPlan, shareDoc, file, mail, chatConsumer, notice, userChat
+from myApp.utils.user import userBasic
+from myApp.tests import debug
+from myApp.utils.ai_tools import AI
 from django.urls import re_path
-from myApp import chatConsumer
+
 
 websocket_urlpatterns = [
     re_path(r"ws/chat/(?P<userId>\w+)/(?P<roomId>\w+)$",
