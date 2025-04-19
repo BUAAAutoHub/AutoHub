@@ -394,3 +394,9 @@ class UserProjectActivity(models.Model):
         (COMMIT_CODE, "B")
     }
     option = models.CharField(max_length=1, choices=OPTION_LIST, default=None, null=True)
+
+class KnowledgeDatabase(models.Model):
+    project_id  = models.ForeignKey(Project, on_delete=models.CASCADE)
+    question    = models.CharField(max_length=4096)
+    answer      = models.CharField(max_length=4096)
+    record_time = models.DateTimeField(default="2050-12-31")

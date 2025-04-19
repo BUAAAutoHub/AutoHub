@@ -7,7 +7,7 @@ import json
 
 from myApp.utils.projects.userdevelop import genResponseStateInfo
 
-# 返回给前端的 ErrorCode
+# 返回给前端的 errcode  
 Success = 0
 Email_Duplicated = 2
 Username_Duplicated = 3

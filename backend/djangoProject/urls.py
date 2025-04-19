@@ -158,6 +158,7 @@ urlpatterns = [
     path('api/chat/createPrivate', userChat.create_private_group),
     path('api/chat/addPerson', userChat.add_user_to_group),
     path('api/chat/deletePerson', userChat.delete_user_from_group),
+    path('api/chat/searchMsg', userChat.search_from_message),
     # path('api/doc/docTimeUpdate', shareDoc.DocTimeUpdate.as_view()),
     path('api/plan/ProjectInfo', userPlan.ProjectInfo.as_view()),
     path('api/file/uploadFile', file.uploadFile.as_view()),

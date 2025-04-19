@@ -134,3 +134,5 @@ userRepos/
 files/
 analyze
 refactor.py
+myApp/utils/format
+myApp/utils/projects/docstring.py

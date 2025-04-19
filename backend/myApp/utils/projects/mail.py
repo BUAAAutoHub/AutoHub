@@ -9,15 +9,17 @@ from django.views import View
 from djangoProject.settings import DBG
 
 
-JIHUB_EMAIL_ADDR = "jihubserver@163.com" # 邮箱地址
-JIHUB_EMAIL_PW = "JiHub123" # 邮箱密码
-IMAP_SMTP_PW = "OKDMSQZPUHMDKBXD" # 邮箱 imap/smtp 服务密码
+JIHUB_EMAIL_ADDR    = "jihubserver@163.com" # 邮箱地址
+JIHUB_EMAIL_PW      = "JiHub123"            # 邮箱密码
+IMAP_SMTP_PW        = "OKDMSQZPUHMDKBXD"    # 邮箱 imap/smtp 服务密码
 
-# title : 邮件名
-# content : 邮件内容
-# recv_name : 收件人昵称，建议为收件人在 jihub 中的用户名
-# recv_email : 收件人邮箱地址，如 "20373696@buaa.edu.cn"
 def mail(title, content, recv_name, recv_email):
+    '''
+        title       :   邮件名
+        contenrt    :   邮件内容
+        recv_name   :   收件人昵称
+        recv_email  :   收件人邮箱地址，如 "123@buaa.edu.cn"
+    '''
     DBG("---- in " + sys._getframe().f_code.co_name + " ----")
     DBG("param" + str(locals()))
     ret = True
