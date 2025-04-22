@@ -25,6 +25,7 @@ const router = new VueRouter({
     },
     {
       path:'/allPerson',
+      // todo 仅做测试
       component: () => import('../views/user/projectPlanning/allPerson.vue')
     },
     {
@@ -64,6 +65,7 @@ const router = new VueRouter({
     {
       path: '/login',
       name: 'login',
+      //component: () => import('../views/Login.vue'),
       component: () => import('../views/Login.vue'),
       meta: { requireLogin: false }
     },
@@ -76,6 +78,12 @@ const router = new VueRouter({
       path: '/dev',
       name: 'dev',
       component: () => import('../views/Dev.vue')
+    },
+    // todo: 后端加上协同编辑！
+    {
+      path: '/room',
+      name: '协同编辑房间',
+      component: () => import('../views/dev/Collab/Room.vue')
     },
     {
       path: '/dev/:projid/:repoid/:branchname+',

@@ -273,14 +273,15 @@ export default {
     }
   },
   created() {
-    axios.get('/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN')
-        .then((response) => {
-          console.log(response.data.images[0].url)
-          this.bingPicOfTheDayUrl = 'https://cn.bing.com' + response.data.images[0].url
-        })
-        .catch((err) => {
-          console.error(err);
-        })
+    // 若去掉注释，会报错！
+    // axios.get('/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN')
+    //     .then((response) => {
+    //       console.log(response.data.images[0].url)
+    //       this.bingPicOfTheDayUrl = 'https://cn.bing.com' + response.data.images[0].url
+    //     })
+    //     .catch((err) => {
+    //       console.error(err);
+    //     })
   }
 }
 </script>

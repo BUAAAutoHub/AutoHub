@@ -1,11 +1,5 @@
 <template>
-<!--    <p>this is branch specific view</p>-->
-<!--    <p>projId: {{projId}} so proj is {{this.proj}}</p>-->
-<!--    <p>repoId: {{repoId}} so repo is {{this.repo}}</p>-->
-<!--    <p>branchName: {{branchName}}</p>-->
-<!--    <p>commitHistory: {{commitHistory}}</p>-->
-
-    <v-container>
+    <v-container fluid class="container">
         <h1 :style="'color: ' + getDarkColor(user.topic)">分支详情 - {{branchName}}</h1>
         <v-row>
           <v-col cols="12">
@@ -92,25 +86,9 @@
             </v-row>
           </v-tab-item>
           <v-tab-item :value="1">
-
-<!--            <v-container fluid>-->
-<!--              <v-row>-->
-<!--                <v-col cols="12">-->
-<!--                  <v-card min-height="1000px">-->
-<!--                    <v-card-title>文件列表</v-card-title>-->
-<!--                    <v-card-text>-->
-                      <FileView/>
-<!--                    </v-card-text>-->
-<!--                  </v-card>-->
-<!--                </v-col>-->
-<!--              </v-row>-->
-<!--            </v-container>-->
-
+                <FileView/>
           </v-tab-item>
         </v-tabs-items>
-
-
-
 
     </v-container>
 </template>
@@ -384,5 +362,10 @@ export default {
 </script>
 
 <style scoped>
-
+.container {
+  max-width: 1200px; /* 你想要的最大宽度 */
+  margin: 0 auto;    /* 水平居中 */
+  /* padding-left: 16px;  自定义内边距 */
+  /* padding-right: 16px; */
+}
 </style>
