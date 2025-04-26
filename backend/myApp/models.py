@@ -400,3 +400,46 @@ class KnowledgeDatabase(models.Model):
     question    = models.CharField(max_length=4096)
     answer      = models.CharField(max_length=4096)
     record_time = models.DateTimeField(default="2050-12-31")
+
+class Bot(models.Model):
+    '''
+        Date        :   2025/4/21
+        Author      :   tangling
+        Description :   model for BOT(in github)
+    '''
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    token = models.CharField(max_length=100)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class ProjectRepoBot(models.Model):
+    '''
+        Date        :   2025/4/21
+        Author      :   tangling
+        Description :   model for ProjectBot
+    '''
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
+    repo = models.ForeignKey(Repo, on_delete=models.CASCADE)
+    added_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    added_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+class BotRule(models.Model):
+    """BOT规则配置"""
+    repo = models.ForeignKey(Repo, on_delete=models.CASCADE)
+    rule_type = models.CharField(max_length=20)  # 'PR' or 'ISSUE'
+    rule_name = models.CharField(max_length=100)  # 规则名称
+    rule_content = models.TextField()  # 规则内容（JSON格式）
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class BotLabel(models.Model):
+    """BOT标签配置"""
+    repo = models.ForeignKey(Repo, on_delete=models.CASCADE)
+    label_name = models.CharField(max_length=50)
+    label_color = models.CharField(max_length=7)  # hex color code
+    label_description = models.TextField()
+    is_active = models.BooleanField(default=True)

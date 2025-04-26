@@ -8,18 +8,7 @@ from myApp.models import Group, User, Message, UserGroup, Project
 SUCCESS = 0
 
 
-def get_room_content(request):
-    """
-    Date        :   2025/4/19
-    Author      :   yanfan
-    Description :   获取房间聊天记录
-    """
-    kwargs: dict = json.loads(request.body)
-
-    roomId = int(kwargs.get("roomId"))
-    group = Group.objects.get(id=roomId)
-    user = User.objects.get(id=int(kwargs.get("userId")))
-
+def get_room_content_api(roomId: int, user: User):
     messages = [
         {
             "content": message.content,
@@ -29,7 +18,20 @@ def get_room_content(request):
         }
         for message in Message.objects.filter(group_id=roomId, receive_user=user)
     ]
+    return messages
 
+
+def get_room_content(request):
+    """
+    Date        :   2025/4/19
+    Author      :   yanfan
+    Description :   获取房间聊天记录
+    """
+    kwargs: dict = json.loads(request.body)
+    roomId = int(request.GET.get("roomId"))
+    group = Group.objects.get(id=roomId)
+    user = User.objects.get(id=int(request.session["userId"]))
+    messages = get_room_content_api(roomId, user)
     return response_json(errcode=SUCCESS, data={"messages": messages})
 
 
@@ -189,6 +191,7 @@ def delete_user_from_groups(user_id: int, project_id: int):
         if not len(association) == 0:
             association.first().delete()
 
+
 def search_from_message(request):
     """
     Date        :   2025/4/19
@@ -205,8 +208,8 @@ def search_from_message(request):
     messages = Message.objects.filter(group_id=roomId, receive_user=user)
 
     # 通过正则表达式匹配
-    pattern = re.compile('.*'.join(re.escape(word) for word in search_text.split()))
-    
+    pattern = re.compile(".*".join(re.escape(word) for word in search_text.split()))
+
     # 过滤包含搜索文本的消息
     matched_messages = [
         {

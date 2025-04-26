@@ -28,7 +28,6 @@ from myApp.models import (
 )
 
 repo_semaphore = {}
-os.environ["GH_TOKEN"] = "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"
 
 MERET = 0
 
@@ -627,7 +626,7 @@ class GetRepoBranches(View):
                 f"/repos/{remotePath}/branches",
             ]
             result = subprocess.run(command, capture_output=True, text=True, check=True)
-            print("err is :", result.stderr)
+            # print("err is :", result.stderr)
             flag, response = checkCMDError(result.stderr, 5, response)
             if flag:
                 return JsonResponse(response)
@@ -646,7 +645,7 @@ class GetRepoBranches(View):
                     f"/repos/{remotePath}/commits/{sha}",
                 ]
                 cmd_result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                print("out is :", cmd_result.stdout)
+                # print("out is :", cmd_result.stdout)
                 flag, response = checkCMDError(cmd_result.stderr, 6, response)
                 if flag:
                     return JsonResponse(response)
@@ -718,7 +717,7 @@ class GetCommitHistory(View):
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             flag, response = checkCMDError(result.stderr, 5, response)
             if flag:
-                print("err is ", result.stderr)
+                # print("err is ", result.stderr)
                 return JsonResponse(response)
             ghInfo = json.loads(result.stdout)
             for info in ghInfo:
@@ -752,6 +751,39 @@ class GetCommitHistory(View):
             return JsonResponse(genUnexpectedlyErrorInfo(response, e))
         return JsonResponse(response)
 
+def _getIssues(repoId, token):
+    data = []
+    try:
+        remotePath = Repo.objects.get(id=repoId).remote_path
+        cmd = [
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "X-GitHub-Api-Version: 2022-11-28",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{remotePath}/issues?state=all",
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        ghInfo = json.loads(result.stdout)
+        for it in ghInfo:
+            data.append(
+                {
+                    "issueId": it["number"],
+                    "issuer": it["user"]["login"],
+                    "issueTitle": it["title"],
+                    "issueTime": it["updated_at"],
+                    "isOpen": it["state"] == "open",
+                    "ghLink": it["html_url"],
+                }
+            )
+        return data
+    except Exception as e:
+        print(f"Error in _getIssues: {str(e)}")
+        return None
+
 
 class GetIssueList(View):
     def post(self, request):
@@ -780,41 +812,65 @@ class GetIssueList(View):
         if token is None or validate_token(token) == False:
             return JsonResponse(genResponseStateInfo(response, 4, "invalid token"))
 
-        data = []
-        try:
-            remotePath = Repo.objects.get(id=repoId).remote_path
-            cmd = [
-                "gh",
-                "api",
-                "-H",
-                "Accept: application/vnd.github+json",
-                "-H",
-                "X-GitHub-Api-Version: 2022-11-28",
-                "-H",
-                f"Authorization: token {token}",
-                f"/repos/{remotePath}/issues?state=all",
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            flag, response = checkCMDError(result.stderr, 5, response)
-            if flag:
-                print("err is :", result.stderr)
-                return JsonResponse(response)
-            ghInfo = json.loads(result.stdout)
-            for it in ghInfo:
-                data.append(
-                    {
-                        "issueId": it["number"],
-                        "issuer": it["user"]["login"],
-                        "issueTitle": it["title"],
-                        "issueTime": it["updated_at"],
-                        "isOpen": it["state"] == "open",
-                        "ghLink": it["html_url"],
-                    }
-                )
-            response["data"] = data
-        except Exception as e:
-            return JsonResponse(genUnexpectedlyErrorInfo(response, e))
+        data = _getIssues(repoId, token)
+        if data is None:
+            return JsonResponse(genUnexpectedlyErrorInfo(response, "Failed to get issue list"))
+        response["data"] = data
         return JsonResponse(response)
+
+
+def _getPrs(repoId, token):
+    data = []
+    try:
+        repo = Repo.objects.get(id=repoId)
+        remotePath = repo.remote_path
+        cmd = [
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "X-GitHub-Api-Version: 2022-11-28",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{remotePath}/pulls?state=all",
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        ghInfo = json.loads(result.stdout)
+        for it in ghInfo:
+            if not Pr.objects.filter(pr_number=it["number"], repo_id=repo).exists():
+                Pr.objects.create(
+                    pr_number=it["number"],
+                    repo_id=repo,
+                    applicant_name=it["user"]["login"],
+                    src_branch=it["head"]["ref"],
+                    dst_branch=it["base"]["ref"],
+                )
+            pr = Pr.objects.get(pr_number=it["number"], repo_id=repo)
+            if pr.reviewer_id is None:
+                reviewerId = None
+                reviewerName = None
+            else:
+                reviewerId = pr.reviewer_id_id
+                reviewerName = User.objects.get(id=reviewerId).name
+            data.append(
+                {
+                    "prId": it["number"],
+                    "prIssuer": it["user"]["login"],
+                    "prTitle": it["title"],
+                    "reviewerId": reviewerId,
+                    "reviewerName": reviewerName,
+                    "prTime": it["updated_at"],
+                    "isOpen": it["state"] == "open",
+                    "ghLink": it["html_url"],
+                    "fromBranchName": it["head"]["ref"],
+                    "toBranchName": it["base"]["ref"],
+                }
+            )
+        return data
+    except Exception as e:
+        print(f"Error in _getPrs: {str(e)}")
+        return None
 
 
 class GetPrList(View):
@@ -843,61 +899,10 @@ class GetPrList(View):
         token = User.objects.get(id=userId).token
         if token is None or validate_token(token) == False:
             return JsonResponse(genResponseStateInfo(response, 4, "invalid token"))
-
-        data = []
-        try:
-            repo = Repo.objects.get(id=repoId)
-            remotePath = repo.remote_path
-            cmd = [
-                "gh",
-                "api",
-                "-H",
-                "Accept: application/vnd.github+json",
-                "-H",
-                "X-GitHub-Api-Version: 2022-11-28",
-                "-H",
-                f"Authorization: token {token}",
-                f"/repos/{remotePath}/pulls?state=all",
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            flag, response = checkCMDError(result.stderr, 5, response)
-            if flag:
-                print("err is :", result.stderr)
-                return JsonResponse(response)
-            ghInfo = json.loads(result.stdout)
-            for it in ghInfo:
-                if not Pr.objects.filter(pr_number=it["number"], repo_id=repo).exists():
-                    Pr.objects.create(
-                        pr_number=it["number"],
-                        repo_id=repo,
-                        applicant_name=it["user"]["login"],
-                        src_branch=it["head"]["ref"],
-                        dst_branch=it["base"]["ref"],
-                    )
-                pr = Pr.objects.get(pr_number=it["number"], repo_id=repo)
-                if pr.reviewer_id is None:
-                    reviewerId = None
-                    reviewerName = None
-                else:
-                    reviewerId = pr.reviewer_id_id
-                    reviewerName = User.objects.get(id=reviewerId).name
-                data.append(
-                    {
-                        "prId": it["number"],
-                        "prIssuer": it["user"]["login"],
-                        "prTitle": it["title"],
-                        "reviewerId": reviewerId,
-                        "reviewerName": reviewerName,
-                        "prTime": it["updated_at"],
-                        "isOpen": it["state"] == "open",
-                        "ghLink": it["html_url"],
-                        "fromBranchName": it["head"]["ref"],
-                        "toBranchName": it["base"]["ref"],
-                    }
-                )
-            response["data"] = data
-        except Exception as e:
-            return JsonResponse(genUnexpectedlyErrorInfo(response, e))
+        data = _getPrs(repoId, token)
+        if data is None:
+            return JsonResponse(genUnexpectedlyErrorInfo(response, "Failed to get PR list"))
+        response["data"] = data
         return JsonResponse(response)
 
 

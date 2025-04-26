@@ -3,12 +3,14 @@ import json
 
 from django.http import JsonResponse
 from django.views import View
-from myApp.models import *
 from djangoProject.settings import DBG
 from myApp.utils.projects.userdevelop import isProjectExists, genResponseStateInfo, isUserInProject
-
-
-# Functions for backend calls
+from myApp.models import (
+    UserProject,
+    Post,
+    User,
+    Project
+)
 
 def userPostNoticeToAll(userId, projectId, name, content):
     DBG("---- in " + sys._getframe().f_code.co_name + " ----")

@@ -29,7 +29,15 @@ SECRET_KEY = "django-insecure-2bo1p8f=2rybk-&)5qo$5%ahm^l0&ht0z7qv5(8=1*=1kc3^^s
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-ALLOWED_HOSTS = ["192.168.1.*", "192.168.0.189", "127.0.0.1", "localhost", "127.0.0.1", "192.168.xx.xxx"]
+ALLOWED_HOSTS = [
+    "192.168.1.*",
+    "192.168.0.189",
+    "127.0.0.1",
+    "localhost",
+    "127.0.0.1",
+    "192.168.xx.xxx",
+    "10.254.47.34",
+]
 
 
 # 配置 MEDIA_ROOT 作为你上传文件在服务器中的基本路径
@@ -198,7 +206,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 USER_REPOS_DIR = os.path.join(BASE_DIR, "userRepos")
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 # add root location at djangoProject/asgi.py application
 # point Daphne at the root routing configuration
@@ -231,4 +239,7 @@ def response_json(errcode, message=None, data=None):
     )
 
 
+from dotenv import load_dotenv
+
+load_dotenv()
 CORS_ALLOW_METHODS = ["DELETE", "GET", "POST", "PUT", "PATCH", "OPTIONS", "VIEW"]
