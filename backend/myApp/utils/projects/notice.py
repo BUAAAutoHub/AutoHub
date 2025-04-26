@@ -1,20 +1,16 @@
-import struct
-
-from django.http import JsonResponse, HttpResponse
-from django.core import serializers
-from django.views import View
-from myApp.models import *
-from djangoProject.settings import DBG, USER_REPOS_DIR, BASE_DIR
-import json
-import os
-import shutil
 import sys
-import subprocess
-import json5
-from myApp.userdevelop import *
+import json
 
-
-# Functions for backend calls
+from django.http import JsonResponse
+from django.views import View
+from djangoProject.settings import DBG
+from myApp.utils.projects.userdevelop import isProjectExists, genResponseStateInfo, isUserInProject
+from myApp.models import (
+    UserProject,
+    Post,
+    User,
+    Project
+)
 
 def userPostNoticeToAll(userId, projectId, name, content):
     DBG("---- in " + sys._getframe().f_code.co_name + " ----")

@@ -1,38 +1,33 @@
 import mimetypes
-import struct
 import datetime
 import subprocess
 import requests
-from django.http import JsonResponse, HttpResponse, FileResponse
-from django.core import serializers
-from django.views import View
-from myApp.models import *
-from djangoProject.settings import DBG, USER_REPOS_DIR, BASE_DIR
 import json
 import os
-import shutil
 import sys
-import json5
+
+from django.http import JsonResponse, FileResponse
+from django.views import View
+from djangoProject.settings import DBG, USER_REPOS_DIR
 from django.db.models import Q
+from myApp.models import (
+    Project,
+    UserProject,
+    User,
+    UserProjectRepo,
+    Repo,
+    Commit,
+    Pr,
+    FileUserCommit,
+    Cooperate,
+    UserProjectActivity,
+    Notice,
+    CommitComment,
+    Task,
+    Pr_Task,
+)
 
 repo_semaphore = {}
-os.environ['GH_TOKEN'] = 'ghp_123456'
-os.environ["HOME"] = "/root/project/SE-SMP-backend"
-# def getSemaphore(repoId):
-#     repoId = str(repoId)
-#     if not repo_semaphore.__contains__(repoId):
-#         repo_semaphore[repoId] = True
-#         return
-#     while repo_semaphore[repoId] == True:
-#         continue
-#     repo_semaphore[repoId] = True
-#     return
-#
-#
-# def releaseSemaphore(repoId):
-#     repo_semaphore[repoId] = False
-#     return
-
 
 MERET = 0
 
@@ -61,13 +56,13 @@ def isUserInProject(userId, projectId):
 
 def genUnexpectedlyErrorInfo(response, e):
     response["errcode"] = -1
-    response['message'] = "unexpectedly error : " + str(e)
+    response["message"] = "unexpectedly error : " + str(e)
     return response
 
 
 def genResponseStateInfo(response, errcode, message):
     response["errcode"] = errcode
-    response['message'] = message
+    response["message"] = message
     return response
 
 
@@ -86,41 +81,48 @@ def needRefresh(token, repo):
         remotePath = repo.remote_path
         localPath = repo.local_path
         remote_command = [
-            "gh", "api",
-            "-H", "Accept: application/vnd.github.v3+json",
-            "-H", f"Authorization: token {token}",
-            f"/repos/{remotePath}/branches"
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github.v3+json",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{remotePath}/branches",
         ]
         remote_result = subprocess.run(remote_command, capture_output=True, text=True, cwd=localPath, check=True)
         remote_branches = []
         if remote_result.returncode == 0:
             remote_data = json.loads(remote_result.stdout)
             if isinstance(remote_data, list):
-                remote_branches = [branch['name'] for branch in remote_data]
+                remote_branches = [branch["name"] for branch in remote_data]
         local_result = subprocess.run(["git", "branch"], capture_output=True, text=True, cwd=localPath, check=True)
         local_branches = []
         if local_result.returncode == 0:
-            local_branches = [branch.strip()[2:] for branch in local_result.stdout.split('\n') if
-                              branch.strip() != ""]
+            local_branches = [branch.strip()[2:] for branch in local_result.stdout.split("\n") if branch.strip() != ""]
         new_branches = set(remote_branches) - set(local_branches)
         if new_branches:
             return True
         for branch in local_branches:
             remote_commit = None
             remote_branch_command = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github.v3+json",
-                "-H", f"Authorization: token {token}",
-                f"/repos/{remotePath}/commits/{branch}"
+                "gh",
+                "api",
+                "-H",
+                "Accept: application/vnd.github.v3+json",
+                "-H",
+                f"Authorization: token {token}",
+                f"/repos/{remotePath}/commits/{branch}",
             ]
-            remote_branch_result = subprocess.run(remote_branch_command, capture_output=True, text=True,
-                                                  cwd=localPath, check=True)
+            remote_branch_result = subprocess.run(
+                remote_branch_command, capture_output=True, text=True, cwd=localPath, check=True
+            )
             if remote_branch_result.returncode == 0:
                 remote_data = json.loads(remote_branch_result.stdout)
-                if 'sha' in remote_data:
-                    remote_commit = remote_data['sha']
-            local_commit_result = subprocess.run(["git", "rev-parse", branch], capture_output=True, text=True,
-                                                 cwd=localPath, check=True)
+                if "sha" in remote_data:
+                    remote_commit = remote_data["sha"]
+            local_commit_result = subprocess.run(
+                ["git", "rev-parse", branch], capture_output=True, text=True, cwd=localPath, check=True
+            )
             local_commit = None
             if local_commit_result.returncode == 0:
                 local_commit = local_commit_result.stdout.strip()
@@ -136,16 +138,16 @@ def needRefresh(token, repo):
 class CheckRefreshRepo(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "check repo refresh ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -163,22 +165,26 @@ class CheckRefreshRepo(View):
             remotePath = repo.remote_path
             localPath = repo.local_path
             remote_command = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github.v3+json",
-                "-H", f"Authorization: token {token}",
-                f"/repos/{remotePath}/branches"
+                "gh",
+                "api",
+                "-H",
+                "Accept: application/vnd.github.v3+json",
+                "-H",
+                f"Authorization: token {token}",
+                f"/repos/{remotePath}/branches",
             ]
             remote_result = subprocess.run(remote_command, capture_output=True, text=True, cwd=localPath, check=True)
             remote_branches = []
             if remote_result.returncode == 0:
                 remote_data = json.loads(remote_result.stdout)
                 if isinstance(remote_data, list):
-                    remote_branches = [branch['name'] for branch in remote_data]
+                    remote_branches = [branch["name"] for branch in remote_data]
             local_result = subprocess.run(["git", "branch"], capture_output=True, text=True, cwd=localPath, check=True)
             local_branches = []
             if local_result.returncode == 0:
-                local_branches = [branch.strip().split(' ')[-1] for branch in local_result.stdout.split('\n') if
-                                  branch.strip() != ""]
+                local_branches = [
+                    branch.strip().split(" ")[-1] for branch in local_result.stdout.split("\n") if branch.strip() != ""
+                ]
             new_branches = set(remote_branches) - set(local_branches)
             if new_branches:
                 print(new_branches)
@@ -188,19 +194,24 @@ class CheckRefreshRepo(View):
             for branch in local_branches:
                 remote_commit = None
                 remote_branch_command = [
-                    "gh", "api",
-                    "-H", "Accept: application/vnd.github.v3+json",
-                    "-H", f"Authorization: token {token}",
-                    f"/repos/{remotePath}/commits/{branch}"
+                    "gh",
+                    "api",
+                    "-H",
+                    "Accept: application/vnd.github.v3+json",
+                    "-H",
+                    f"Authorization: token {token}",
+                    f"/repos/{remotePath}/commits/{branch}",
                 ]
-                remote_branch_result = subprocess.run(remote_branch_command, capture_output=True, text=True,
-                                                      cwd=localPath, check=True)
+                remote_branch_result = subprocess.run(
+                    remote_branch_command, capture_output=True, text=True, cwd=localPath, check=True
+                )
                 if remote_branch_result.returncode == 0:
                     remote_data = json.loads(remote_branch_result.stdout)
-                    if 'sha' in remote_data:
-                        remote_commit = remote_data['sha']
-                local_commit_result = subprocess.run(["git", "rev-parse", branch], capture_output=True, text=True,
-                                                     cwd=localPath, check=True)
+                    if "sha" in remote_data:
+                        remote_commit = remote_data["sha"]
+                local_commit_result = subprocess.run(
+                    ["git", "rev-parse", branch], capture_output=True, text=True, cwd=localPath, check=True
+                )
                 local_commit = None
                 if local_commit_result.returncode == 0:
                     local_commit = local_commit_result.stdout.strip()
@@ -220,16 +231,16 @@ class CheckRefreshRepo(View):
 class RefreshRepo(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "repo refresh ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -247,22 +258,18 @@ class RefreshRepo(View):
         try:
             # 重新克隆远程仓库
             remotePath = repo.remote_path
-            result = subprocess.run(
-                ["git", "pull", "origin"],
-                capture_output=True, text=True)
+            result = subprocess.run(["git", "pull", "origin"], capture_output=True, text=True)
             print(result.stderr)
             if result.returncode == 0:
                 # 获取本地和远程分支列表
-                branch_result = subprocess.run(
-                    ["git", "branch", "-a"],
-                    capture_output=True, text=True, cwd=localPath)
+                branch_result = subprocess.run(["git", "branch", "-a"], capture_output=True, text=True, cwd=localPath)
                 if branch_result.returncode != 0:
                     return JsonResponse(genResponseStateInfo(response, 5, "failed to get branch list"))
                 # 解析分支列表并创建本地分支
-                branches = branch_result.stdout.strip().split('\n')
+                branches = branch_result.stdout.strip().split("\n")
                 for branch in branches:
                     # 去掉分支名前的空格和 * 符号
-                    branch_name = branch.strip().lstrip('* ')
+                    branch_name = branch.strip().lstrip("* ")
                     # 忽略 HEAD 指针和远程分支
                     if branch_name != "HEAD" and not branch_name.startswith("remotes/origin/HEAD"):
                         if branch_name.startswith("remotes/origin"):
@@ -279,7 +286,7 @@ class RefreshRepo(View):
 class GetProjectName(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -288,8 +295,8 @@ class GetProjectName(View):
         genResponseStateInfo(response, 0, "get project name ok")
         response["data"] = {}
         response["data"]["name"] = ""
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -304,7 +311,7 @@ class GetProjectName(View):
 class GetBindRepos(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -312,8 +319,8 @@ class GetBindRepos(View):
         response = {}
         genResponseStateInfo(response, 0, "get bind repos ok")
         response["data"] = []
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -336,22 +343,28 @@ class GetBindRepos(View):
                 repo = Repo.objects.get(id=repoId)
                 print(33333333)
                 command = [
-                    "gh", "api",
-                    "-H", "Accept: application/vnd.github.v3+json",
-                    "-H", f"Authorization: token {token}",
-                    f"/repos/{repo.remote_path}"
+                    "gh",
+                    "api",
+                    "-H",
+                    "Accept: application/vnd.github.v3+json",
+                    "-H",
+                    f"Authorization: token {token}",
+                    f"/repos/{repo.remote_path}",
                 ]
-                result = subprocess.run(command, capture_output=True, text=True,
-                                        cwd=repo.local_path,check=True)
+                result = subprocess.run(command, capture_output=True, text=True, cwd=repo.local_path, check=True)
                 desc = json.loads(result.stdout)
-                print("out is :",result.stdout)
-                print("err is :",result.stderr)
+                print("out is :", result.stdout)
+                print("err is :", result.stderr)
                 response["out"] = result.stdout
                 response["fuck"] = result.stderr
-                response["data"].append({"repoId": repoId,
-                                         "repoRemotePath": repo.remote_path,
-                                         "name": repo.name,
-                                         "repoIntroduction": desc["description"]})
+                response["data"].append(
+                    {
+                        "repoId": repoId,
+                        "repoRemotePath": repo.remote_path,
+                        "name": repo.name,
+                        "repoIntroduction": desc["description"],
+                    }
+                )
         except Exception as e:
             print(e)
             print("Command failed with exit code:", e.returncode)
@@ -365,10 +378,14 @@ class GetBindRepos(View):
 def getDir(nowPath, owner, repo, branch, token, data):
     # print(nowPath)
     command = [
-        "gh", "api",
-        "-H", "Accept: application/vnd.github+json",
-        "-H", "X-GitHub-Api-Version: 2022-11-28",
-        "-H", f"Authorization: token {token}",
+        "gh",
+        "api",
+        "-H",
+        "Accept: application/vnd.github+json",
+        "-H",
+        "X-GitHub-Api-Version: 2022-11-28",
+        "-H",
+        f"Authorization: token {token}",
         f"/repos/{owner}/{repo}/contents/{nowPath}?ref={branch}",
     ]
     result = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -387,7 +404,7 @@ def getDir(nowPath, owner, repo, branch, token, data):
                 if flag == -1:
                     return -1
             else:
-                data.append({"name": file['name']})
+                data.append({"name": file["name"]})
     else:
         return -1
 
@@ -396,17 +413,17 @@ class GetRepoAllFiles(View):
     def post(self, request):
         # 检查权限
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get file tree ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
-        branch = str(kwargs.get('branch'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
+        branch = str(kwargs.get("branch"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -440,17 +457,17 @@ class GetRepoAllFiles(View):
 class GetRepoFile(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get repo all files ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
-        filePath = str(kwargs.get('filePath'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
+        filePath = str(kwargs.get("filePath"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -464,7 +481,7 @@ class GetRepoFile(View):
         try:
             if not os.path.isfile(file_path):
                 return JsonResponse(genResponseStateInfo(response, 1, "file does not exists"))
-            with open(file_path, 'r') as file:
+            with open(file_path, "r") as file:
                 file_content = file.read()
             content_type, _ = mimetypes.guess_type(file_path)
             return FileResponse(file_content, content_type=content_type)
@@ -473,13 +490,9 @@ class GetRepoFile(View):
 
 
 def check_repo_exists(token, repoRemotePath):
-    owner, repo_name = repoRemotePath.split('/')
-    print(os.environ.get('GH_TOKEN'))
-    check_command = [
-        "gh", "api",
-        f"/repos/{owner}/{repo_name}",
-        "-H", f"Authorization: token {token}"
-    ]
+    owner, repo_name = repoRemotePath.split("/")
+    print(os.environ.get("GH_TOKEN"))
+    check_command = ["gh", "api", f"/repos/{owner}/{repo_name}", "-H", f"Authorization: token {token}"]
     try:
         result = subprocess.run(check_command, capture_output=True, text=True, check=True)
         return True
@@ -490,16 +503,16 @@ def check_repo_exists(token, repoRemotePath):
 class UserBindRepo(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "bind ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoRemotePath = kwargs.get('repoRemotePath')
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoRemotePath = kwargs.get("repoRemotePath")
         DBG("userId=" + userId + " projectId=" + projectId + " repoRemotePath=" + repoRemotePath)
         project = isProjectExists(projectId)
         if project is None:
@@ -526,39 +539,33 @@ class UserBindRepo(View):
             repo = Repo.objects.get(remote_path=repoRemotePath)
             localPath = repo.local_path
         if not os.path.exists(localPath):
-            clone_command = [
-                'git', 'clone', f"https://{token}@github.com/{repoRemotePath}.git",
-                f"{localPath}"
-            ]
+            clone_command = ["git", "clone", f"https://{token}@github.com/{repoRemotePath}.git", f"{localPath}"]
             result = subprocess.run(clone_command, capture_output=True, text=True, cwd=userReposDir)
             print(result.stdout)
             print(result.stderr)
             if result.returncode != 0:
                 return JsonResponse(genResponseStateInfo(response, 5, "clone failed"))
         repo, _ = Repo.objects.get_or_create(
-            remote_path=repoRemotePath,
-            defaults={'name': repoName, 'local_path': localPath}
+            remote_path=repoRemotePath, defaults={"name": repoName, "local_path": localPath}
         )
 
-        userProjectRepoEntry, _ = UserProjectRepo.objects.get_or_create(
-            user_id=user, project_id=project, repo_id=repo
-        )
+        userProjectRepoEntry, _ = UserProjectRepo.objects.get_or_create(user_id=user, project_id=project, repo_id=repo)
         return JsonResponse(response)
 
 
 class UserUnbindRepo(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "unbind ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -581,16 +588,16 @@ class UserUnbindRepo(View):
 class GetRepoBranches(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get branches ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -608,14 +615,18 @@ class GetRepoBranches(View):
         try:
             remotePath = Repo.objects.get(id=repoId).remote_path
             command = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github+json",
-                "-H", "X-GitHub-Api-Version: 2022-11-28",
-                "-H", f"Authorization: token {token}",
+                "gh",
+                "api",
+                "-H",
+                "Accept: application/vnd.github+json",
+                "-H",
+                "X-GitHub-Api-Version: 2022-11-28",
+                "-H",
+                f"Authorization: token {token}",
                 f"/repos/{remotePath}/branches",
             ]
             result = subprocess.run(command, capture_output=True, text=True, check=True)
-            print("err is :", result.stderr)
+            # print("err is :", result.stderr)
             flag, response = checkCMDError(result.stderr, 5, response)
             if flag:
                 return JsonResponse(response)
@@ -623,27 +634,34 @@ class GetRepoBranches(View):
             for it in ghInfo:
                 sha = it["commit"]["sha"]
                 cmd = [
-                    "gh", "api",
-                    "-H", "Accept: application/vnd.github+json",
-                    "-H", "X-GitHub-Api-Version: 2022-11-28",
-                    "-H", f"Authorization: token {token}",
+                    "gh",
+                    "api",
+                    "-H",
+                    "Accept: application/vnd.github+json",
+                    "-H",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                    "-H",
+                    f"Authorization: token {token}",
                     f"/repos/{remotePath}/commits/{sha}",
                 ]
                 cmd_result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                print("out is :", cmd_result.stdout)
+                # print("out is :", cmd_result.stdout)
                 flag, response = checkCMDError(cmd_result.stderr, 6, response)
                 if flag:
                     return JsonResponse(response)
                 commitInfo = json.loads(cmd_result.stdout)
-                data.append({"branchName": it["name"],
-                             "lastCommit": {
-                                 "sha": sha,
-                                 "authorName": commitInfo["commit"]["author"]["name"],
-                                 "authorEmail": commitInfo["commit"]["author"]["email"],
-                                 "commitDate": commitInfo["commit"]["author"]["date"],
-                                 "commitMessage": commitInfo["commit"]["message"]
-                             }
-                             })
+                data.append(
+                    {
+                        "branchName": it["name"],
+                        "lastCommit": {
+                            "sha": sha,
+                            "authorName": commitInfo["commit"]["author"]["name"],
+                            "authorEmail": commitInfo["commit"]["author"]["email"],
+                            "commitDate": commitInfo["commit"]["author"]["date"],
+                            "commitMessage": commitInfo["commit"]["message"],
+                        },
+                    }
+                )
             response["data"] = data
         except Exception as e:
             return JsonResponse(genUnexpectedlyErrorInfo(response, e))
@@ -653,17 +671,17 @@ class GetRepoBranches(View):
 class GetCommitHistory(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get commit history ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
-        branchName = kwargs.get('branchName')
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
+        branchName = kwargs.get("branchName")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -686,23 +704,28 @@ class GetCommitHistory(View):
             if not is_independent_git_repository(localPath):
                 return JsonResponse(genResponseStateInfo(response, 4, "this is not git repository???"))
             cmd = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github+json",
-                "-H", "X-GitHub-Api-Version: 2022-11-28",
-                "-H", f"Authorization: token {token}",
+                "gh",
+                "api",
+                "-H",
+                "Accept: application/vnd.github+json",
+                "-H",
+                "X-GitHub-Api-Version: 2022-11-28",
+                "-H",
+                f"Authorization: token {token}",
                 f"/repos/{remotePath}/commits?sha={branchName}",
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             flag, response = checkCMDError(result.stderr, 5, response)
             if flag:
-                print("err is ", result.stderr)
+                # print("err is ", result.stderr)
                 return JsonResponse(response)
             ghInfo = json.loads(result.stdout)
             for info in ghInfo:
                 sha = info["sha"]
                 if not Commit.objects.filter(sha=sha).exists():
-                    tmp_commit = Commit.objects.create(repo_id=Repo.objects.get(id=repoId), sha=sha,
-                                                       committer_name=info["commit"]["author"]["name"])
+                    tmp_commit = Commit.objects.create(
+                        repo_id=Repo.objects.get(id=repoId), sha=sha, committer_name=info["commit"]["author"]["name"]
+                    )
                 else:
                     tmp_commit = Commit.objects.filter(sha=sha)[0]
                 if tmp_commit.reviewer_id is not None:
@@ -711,33 +734,70 @@ class GetCommitHistory(View):
                 else:
                     reviewerId = None
                     reviewerName = None
-                data.append({"commithash": sha, "author": info["commit"]['author']['name'],
-                             "authorEmail": info['commit']['author']['email'],
-                             "commitTime": info["commit"]["author"]["date"],
-                             "commitMessage": info["commit"]["message"],
-                             "status": tmp_commit.review_status,
-                             "reviewerId": reviewerId,
-                             "reviewerName": reviewerName, }
-                            )
+                data.append(
+                    {
+                        "commithash": sha,
+                        "author": info["commit"]["author"]["name"],
+                        "authorEmail": info["commit"]["author"]["email"],
+                        "commitTime": info["commit"]["author"]["date"],
+                        "commitMessage": info["commit"]["message"],
+                        "status": tmp_commit.review_status,
+                        "reviewerId": reviewerId,
+                        "reviewerName": reviewerName,
+                    }
+                )
                 response["data"] = data
         except Exception as e:
             return JsonResponse(genUnexpectedlyErrorInfo(response, e))
         return JsonResponse(response)
 
+def _getIssues(repoId, token):
+    data = []
+    try:
+        remotePath = Repo.objects.get(id=repoId).remote_path
+        cmd = [
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "X-GitHub-Api-Version: 2022-11-28",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{remotePath}/issues?state=all",
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        ghInfo = json.loads(result.stdout)
+        for it in ghInfo:
+            data.append(
+                {
+                    "issueId": it["number"],
+                    "issuer": it["user"]["login"],
+                    "issueTitle": it["title"],
+                    "issueTime": it["updated_at"],
+                    "isOpen": it["state"] == "open",
+                    "ghLink": it["html_url"],
+                }
+            )
+        return data
+    except Exception as e:
+        print(f"Error in _getIssues: {str(e)}")
+        return None
+
 
 class GetIssueList(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get issue list ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -752,48 +812,80 @@ class GetIssueList(View):
         if token is None or validate_token(token) == False:
             return JsonResponse(genResponseStateInfo(response, 4, "invalid token"))
 
-        data = []
-        try:
-            remotePath = Repo.objects.get(id=repoId).remote_path
-            cmd = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github+json",
-                "-H", "X-GitHub-Api-Version: 2022-11-28",
-                "-H", f"Authorization: token {token}",
-                f"/repos/{remotePath}/issues?state=all",
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            flag, response = checkCMDError(result.stderr, 5, response)
-            if flag:
-                print("err is :", result.stderr)
-                return JsonResponse(response)
-            ghInfo = json.loads(result.stdout)
-            for it in ghInfo:
-                data.append({"issueId": it["number"],
-                             "issuer": it["user"]["login"],
-                             "issueTitle": it["title"],
-                             "issueTime": it["updated_at"],
-                             "isOpen": it["state"] == "open",
-                             "ghLink": it["html_url"]})
-            response["data"] = data
-        except Exception as e:
-            return JsonResponse(genUnexpectedlyErrorInfo(response, e))
+        data = _getIssues(repoId, token)
+        if data is None:
+            return JsonResponse(genUnexpectedlyErrorInfo(response, "Failed to get issue list"))
+        response["data"] = data
         return JsonResponse(response)
+
+
+def _getPrs(repoId, token):
+    data = []
+    try:
+        repo = Repo.objects.get(id=repoId)
+        remotePath = repo.remote_path
+        cmd = [
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "X-GitHub-Api-Version: 2022-11-28",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{remotePath}/pulls?state=all",
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        ghInfo = json.loads(result.stdout)
+        for it in ghInfo:
+            if not Pr.objects.filter(pr_number=it["number"], repo_id=repo).exists():
+                Pr.objects.create(
+                    pr_number=it["number"],
+                    repo_id=repo,
+                    applicant_name=it["user"]["login"],
+                    src_branch=it["head"]["ref"],
+                    dst_branch=it["base"]["ref"],
+                )
+            pr = Pr.objects.get(pr_number=it["number"], repo_id=repo)
+            if pr.reviewer_id is None:
+                reviewerId = None
+                reviewerName = None
+            else:
+                reviewerId = pr.reviewer_id_id
+                reviewerName = User.objects.get(id=reviewerId).name
+            data.append(
+                {
+                    "prId": it["number"],
+                    "prIssuer": it["user"]["login"],
+                    "prTitle": it["title"],
+                    "reviewerId": reviewerId,
+                    "reviewerName": reviewerName,
+                    "prTime": it["updated_at"],
+                    "isOpen": it["state"] == "open",
+                    "ghLink": it["html_url"],
+                    "fromBranchName": it["head"]["ref"],
+                    "toBranchName": it["base"]["ref"],
+                }
+            )
+        return data
+    except Exception as e:
+        print(f"Error in _getPrs: {str(e)}")
+        return None
 
 
 class GetPrList(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get pr list ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -807,48 +899,10 @@ class GetPrList(View):
         token = User.objects.get(id=userId).token
         if token is None or validate_token(token) == False:
             return JsonResponse(genResponseStateInfo(response, 4, "invalid token"))
-
-        data = []
-        try:
-            repo = Repo.objects.get(id=repoId)
-            remotePath = repo.remote_path
-            cmd = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github+json",
-                "-H", "X-GitHub-Api-Version: 2022-11-28",
-                "-H", f"Authorization: token {token}",
-                f"/repos/{remotePath}/pulls?state=all",
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            flag, response = checkCMDError(result.stderr, 5, response)
-            if flag:
-                print("err is :", result.stderr)
-                return JsonResponse(response)
-            ghInfo = json.loads(result.stdout)
-            for it in ghInfo:
-                if not Pr.objects.filter(pr_number=it["number"], repo_id=repo).exists():
-                    Pr.objects.create(pr_number=it["number"], repo_id=repo, applicant_name=it["user"]["login"],
-                                      src_branch=it["head"]["ref"], dst_branch=it["base"]["ref"])
-                pr = Pr.objects.get(pr_number=it["number"], repo_id=repo)
-                if pr.reviewer_id is None:
-                    reviewerId = None
-                    reviewerName = None
-                else:
-                    reviewerId = pr.reviewer_id_id
-                    reviewerName = User.objects.get(id=reviewerId).name
-                data.append({"prId": it["number"],
-                             "prIssuer": it["user"]["login"],
-                             "prTitle": it["title"],
-                             "reviewerId": reviewerId,
-                             "reviewerName": reviewerName,
-                             "prTime": it["updated_at"],
-                             "isOpen": it["state"] == "open",
-                             "ghLink": it["html_url"],
-                             "fromBranchName": it["head"]["ref"],
-                             "toBranchName": it["base"]["ref"]})
-            response["data"] = data
-        except Exception as e:
-            return JsonResponse(genUnexpectedlyErrorInfo(response, e))
+        data = _getPrs(repoId, token)
+        if data is None:
+            return JsonResponse(genUnexpectedlyErrorInfo(response, "Failed to get PR list"))
+        response["data"] = data
         return JsonResponse(response)
 
 
@@ -867,17 +921,17 @@ def _getFileTree(dirPath):
 class GetFileTree(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get file tree ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
-        branch = str(kwargs.get('branch'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
+        branch = str(kwargs.get("branch"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -909,18 +963,18 @@ class GetFileTree(View):
 class GetContent(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         response = {}
         genResponseStateInfo(response, 0, "get file ok")
-        userId = str(kwargs.get('userId'))
-        projectId = str(kwargs.get('projectId'))
-        repoId = str(kwargs.get('repoId'))
-        branch = str(kwargs.get('branch'))
-        path = str(kwargs.get('path'))
+        userId = str(kwargs.get("userId"))
+        projectId = str(kwargs.get("projectId"))
+        repoId = str(kwargs.get("repoId"))
+        branch = str(kwargs.get("branch"))
+        path = str(kwargs.get("path"))
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -957,9 +1011,9 @@ import re
 
 def validate_token_format(token):
     # 定义符合要求的token前缀列表
-    valid_prefixes = ['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_']
+    valid_prefixes = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"]
     # 使用正则表达式检查token是否以有效的前缀开头
-    pattern = '|'.join(valid_prefixes)
+    pattern = "|".join(valid_prefixes)
     if re.match(pattern, token):
         return True
     return False
@@ -968,8 +1022,8 @@ def validate_token_format(token):
 def validate_token(token):
     if not validate_token_format(token):
         return False
-    headers = {'Authorization': 'token ' + token, 'Content-Type': 'application/json; charset=utf-8'}
-    response = requests.get('https://api.github.com/user', headers=headers)
+    headers = {"Authorization": "token " + token, "Content-Type": "application/json; charset=utf-8"}
+    response = requests.get("https://api.github.com/user", headers=headers)
     print(token, response.status_code)
     if response.status_code == 200:
         return True
@@ -979,8 +1033,8 @@ def validate_token(token):
 
 
 def is_independent_git_repository(path):
-    print(os.path.join(path, '.git'))
-    if os.path.exists(os.path.join(path, '.git')):
+    print(os.path.join(path, ".git"))
+    if os.path.exists(os.path.join(path, ".git")):
         return True
     else:
         return False
@@ -989,20 +1043,20 @@ def is_independent_git_repository(path):
 class GitCommit(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "git commit ok")
 
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
 
-        files = kwargs.get('files')
-        branch = kwargs.get('branch')
-        message = kwargs.get('message')
+        files = kwargs.get("files")
+        branch = kwargs.get("branch")
+        message = kwargs.get("message")
 
         project = isProjectExists(projectId)
         if project == None:
@@ -1027,28 +1081,34 @@ class GitCommit(View):
             if not is_independent_git_repository(localPath):
                 return JsonResponse(genResponseStateInfo(response, 999, " not git dir"))
             if validate_token(token):
-                t = subprocess.run(["git", "config", "--global", "user.name", "JiHub"], cwd=localPath,capture_output=True,text=True)
+                t = subprocess.run(
+                    ["git", "config", "--global", "user.name", "JiHub"], cwd=localPath, capture_output=True, text=True
+                )
                 print(t.stdout)
                 print(t.stderr)
-                subprocess.run(["git", "config", "--global", "user.email", "JiHub@buaa.edu.cn"], cwd=localPath,check=True)
+                subprocess.run(
+                    ["git", "config", "--global", "user.email", "JiHub@buaa.edu.cn"], cwd=localPath, check=True
+                )
                 subprocess.run(["git", "checkout", branch], cwd=localPath, check=True)
-                subprocess.run(["git", "remote", "add", "tmp", f"https://{token}@github.com/{remotePath}.git"],
-                               cwd=localPath)
+                subprocess.run(
+                    ["git", "remote", "add", "tmp", f"https://{token}@github.com/{remotePath}.git"], cwd=localPath
+                )
                 for file in files:
-                    path = os.path.join(localPath, file.get('path'))
+                    path = os.path.join(localPath, file.get("path"))
                     print(path)
-                    content = file.get('content')
+                    content = file.get("content")
                     print("$$$$$$$$$$ modify file ", path)
                     try:
-                        with open(path, 'w') as f:
+                        with open(path, "w") as f:
                             f.write(content)
                     except Exception as e:
                         print(f"Failed to overwrite file {path}: {e}")
                     subprocess.run(["git", "add", path], cwd=localPath, check=True)
                 subprocess.run(["git", "commit", "-m", message], cwd=localPath, check=True)
 
-                result = subprocess.run(["git", "push", "tmp", branch], cwd=localPath, stderr=subprocess.PIPE,
-                                        text=True)
+                result = subprocess.run(
+                    ["git", "push", "tmp", branch], cwd=localPath, stderr=subprocess.PIPE, text=True
+                )
                 print("err is ", result.stderr)
                 if "fatal" in result.stderr or "403" in result.stderr or "rejected" in result.stderr:
                     subprocess.run(["git", "reset", "--hard", "HEAD^1"], cwd=localPath, check=True)
@@ -1056,56 +1116,73 @@ class GitCommit(View):
                     response["message"] = result.stderr
                     errcode = 7
                 else:
-                    result = subprocess.run(["git", "log", "-1", "--pretty=format:%H"], cwd=localPath,
-                                            capture_output=True, text=True, check=True)
+                    result = subprocess.run(
+                        ["git", "log", "-1", "--pretty=format:%H"],
+                        cwd=localPath,
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
                     current_commit_sha = result.stdout.strip()
                     print(current_commit_sha)
-                    Commit.objects.create(repo_id=repo, sha=current_commit_sha, committer_name=user.name,
-                                          committer_id=user,
-                                          review_status=None)
+                    Commit.objects.create(
+                        repo_id=repo,
+                        sha=current_commit_sha,
+                        committer_name=user.name,
+                        committer_id=user,
+                        review_status=None,
+                    )
                     # cooperate & file commit update
                     for file in files:
-                        FileUserCommit.objects.create(user_id=user,
-                                                      repo_id=repo,
-                                                      branch=branch, file=file['path'], commit_sha=current_commit_sha)
+                        FileUserCommit.objects.create(
+                            user_id=user, repo_id=repo, branch=branch, file=file["path"], commit_sha=current_commit_sha
+                        )
                         # modify Cooperate
-                        tmp = FileUserCommit.objects.filter(repo_id=repo, branch=branch, file=file['path']).exclude(
-                            user_id=user)
+                        tmp = FileUserCommit.objects.filter(repo_id=repo, branch=branch, file=file["path"]).exclude(
+                            user_id=user
+                        )
                         if tmp.exists():
                             for item in tmp:
                                 user2 = item.user_id
-                                if not Cooperate.objects.filter(user1_id=user, user2_id=user2,
-                                                                project_id=project).exists():
+                                if not Cooperate.objects.filter(
+                                    user1_id=user, user2_id=user2, project_id=project
+                                ).exists():
                                     Cooperate.objects.create(user1_id=user, user2_id=user2, project_id=project)
                                 cooperate = Cooperate.objects.get(user1_id=user, user2_id=user2, project_id=project)
                                 cooperate.relation += 1
                                 cooperate.save()
-                                if not Cooperate.objects.filter(user1_id=user2, user2_id=user,
-                                                                project_id=project).exists():
+                                if not Cooperate.objects.filter(
+                                    user1_id=user2, user2_id=user, project_id=project
+                                ).exists():
                                     Cooperate.objects.create(user1_id=user2, user2_id=user, project_id=project)
                                 cooperate = Cooperate.objects.get(user1_id=user2, user2_id=user, project_id=project)
                                 cooperate.relation += 1
                                 cooperate.save()
-                    UserProjectActivity.objects.create(user_id=user, project_id=project,
-                                                       option=UserProjectActivity.COMMIT_CODE)
+                    UserProjectActivity.objects.create(
+                        user_id=user, project_id=project, option=UserProjectActivity.COMMIT_CODE
+                    )
 
-                    content = f"您的项目\"{project.name}\"有新的提交，位于仓库\"{repo.name}\"的分支\"{branch}\"，" \
-                              f"请分配审核人员。"
+                    content = (
+                        f'您的项目"{project.name}"有新的提交，位于仓库"{repo.name}"的分支"{branch}"，'
+                        f"请分配审核人员。"
+                    )
                     filtered_user = UserProject.objects.filter(
-                        Q(role=UserProject.ADMIN) | Q(role=UserProject.DEVELOPER),
-                        project_id=project
+                        Q(role=UserProject.ADMIN) | Q(role=UserProject.DEVELOPER), project_id=project
                     )
                     for up in filtered_user:
-                        msg = Notice.objects.create(receiver_id=up.user_id, read=Notice.N, content=content,
-                                                    url=f"commitReview/{projectId}/{repoId}/"
-                                                        f"{branch}/{current_commit_sha}?branchName={branch}&projId={projectId}&"
-                                                        f"repoId={repoId}&commitSha={current_commit_sha}"
+                        msg = Notice.objects.create(
+                            receiver_id=up.user_id,
+                            read=Notice.N,
+                            content=content,
+                            url=f"commitReview/{projectId}/{repoId}/"
+                            f"{branch}/{current_commit_sha}?branchName={branch}&projId={projectId}&"
+                            f"repoId={repoId}&commitSha={current_commit_sha}",
                         )
                         msg.save()
 
                     errcode = 0
                 subprocess.run(["git", "remote", "rm", "tmp"], cwd=localPath)
-                response['errcode'] = errcode
+                response["errcode"] = errcode
             else:
                 return JsonResponse(genResponseStateInfo(response, 6, f"wrong token {token} with this user"))
         except Exception as e:
@@ -1117,7 +1194,7 @@ class GitCommit(View):
 class GitPr(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
@@ -1125,13 +1202,13 @@ class GitPr(View):
         response = {}
         genResponseStateInfo(response, 0, "git pr ok")
 
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        branch = kwargs.get('branch')
-        title = kwargs.get('title')
-        body = kwargs.get('body')
-        base = kwargs.get('base')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        branch = kwargs.get("branch")
+        title = kwargs.get("title")
+        body = kwargs.get("body")
+        base = kwargs.get("base")
 
         project = isProjectExists(projectId)
         if project == None:
@@ -1151,19 +1228,33 @@ class GitPr(View):
             remotePath = Repo.objects.get(id=repoId).remote_path
             if token is not None or validate_token(token):
                 command = [
-                    "gh", "api",
-                    "-H", "Accept: application/vnd.github+json",
-                    "-H", "X-GitHub-Api-Version: 2022-11-28",
-                    "-H", f"Authorization: token {token}",
+                    "gh",
+                    "api",
+                    "-H",
+                    "Accept: application/vnd.github+json",
+                    "-H",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                    "-H",
+                    f"Authorization: token {token}",
                     f"/repos/{remotePath}/pulls",
-                    "-f", f"title={title}",
-                    "-f", f"body={body}",
-                    "-f", f"head={branch}",
-                    "-f", f"base={base}"
+                    "-f",
+                    f"title={title}",
+                    "-f",
+                    f"body={body}",
+                    "-f",
+                    f"head={branch}",
+                    "-f",
+                    f"base={base}",
                 ]
 
                 result = subprocess.run(command, cwd=localPath, capture_output=True, text=True)
-                if "Failed" in result.stderr or "422" in result.stderr or "fatal" in result.stderr or "403" in result.stderr or "rejected" in result.stderr:
+                if (
+                    "Failed" in result.stderr
+                    or "422" in result.stderr
+                    or "fatal" in result.stderr
+                    or "403" in result.stderr
+                    or "rejected" in result.stderr
+                ):
                     print(result.stdout)
                     print(result.stderr)
                     response["message"] = json.loads(result.stdout)["errors"][0]["message"]
@@ -1171,20 +1262,27 @@ class GitPr(View):
                     return JsonResponse(response)
                 output = json.loads(result.stdout)
                 print("------- pr number:", output["number"])
-                Pr.objects.create(applicant_id=applicant, repo_id=repo, src_branch=branch, dst_branch=base,
-                                  pr_number=output["number"], applicant_name=applicant.name, pr_status=Pr.OPEN)
-                response['errcode'] = 0
-                content = f"您的项目\"{project.name}\"有新的合并请求，位于仓库\"{repo.name}\"，" \
-                          f"请分配审核人员。"
+                Pr.objects.create(
+                    applicant_id=applicant,
+                    repo_id=repo,
+                    src_branch=branch,
+                    dst_branch=base,
+                    pr_number=output["number"],
+                    applicant_name=applicant.name,
+                    pr_status=Pr.OPEN,
+                )
+                response["errcode"] = 0
+                content = f'您的项目"{project.name}"有新的合并请求，位于仓库"{repo.name}"，' f"请分配审核人员。"
                 prId = output["number"]
                 for up in UserProject.objects.filter(
-                        Q(role=UserProject.ADMIN) | Q(role=UserProject.DEVELOPER),
-                        project_id=project
+                    Q(role=UserProject.ADMIN) | Q(role=UserProject.DEVELOPER), project_id=project
                 ):
-                    msg = Notice.objects.create(receiver_id=up.user_id, read=Notice.N, content=content,
-                                                url=f"prReview/{projectId}/{repoId}/{prId}"
-                                                    f"?prId={prId}&projId={projectId}&repoId={repoId}"
-                                                )
+                    msg = Notice.objects.create(
+                        receiver_id=up.user_id,
+                        read=Notice.N,
+                        content=content,
+                        url=f"prReview/{projectId}/{repoId}/{prId}" f"?prId={prId}&projId={projectId}&repoId={repoId}",
+                    )
                     msg.save()
             else:
                 return JsonResponse(genResponseStateInfo(response, 6, "wrong token with this user"))
@@ -1196,20 +1294,20 @@ class GitPr(View):
 class GitBranchCommit(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "git commit ok")
 
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
 
-        files = kwargs.get('files')
-        branch = kwargs.get('branch')
-        message = kwargs.get('message')
+        files = kwargs.get("files")
+        branch = kwargs.get("branch")
+        message = kwargs.get("message")
         dstBranch = kwargs.get("dstBranch")
         project = isProjectExists(projectId)
         if project == None:
@@ -1231,31 +1329,34 @@ class GitBranchCommit(View):
             remotePath = repo.remote_path
             print(validate_token(token))
             if token is not None or not validate_token(token):
-                subprocess.run(['git', 'credential-cache', 'exit'], cwd=localPath)
+                subprocess.run(["git", "credential-cache", "exit"], cwd=localPath)
                 subprocess.run(["git", "config", "--unset-all", "user.name"], cwd=localPath)
                 subprocess.run(["git", "config", "--unset-all", "user.email"], cwd=localPath)
-                subprocess.run(['git', 'checkout', branch], cwd=localPath, check=True)
-                result = subprocess.run(["git", "checkout", "-b", dstBranch], cwd=localPath, stderr=subprocess.PIPE,
-                                        text=True)
+                subprocess.run(["git", "checkout", branch], cwd=localPath, check=True)
+                result = subprocess.run(
+                    ["git", "checkout", "-b", dstBranch], cwd=localPath, stderr=subprocess.PIPE, text=True
+                )
                 if "fatal" in result.stderr or "403" in result.stderr or "rejected" in result.stderr:
                     response["message"] = result.stderr
                     response["errcode"] = 7
                     return JsonResponse(response)
-                subprocess.run(["git", "remote", "add", "tmp", f"https://{token}@github.com/{remotePath}.git"],
-                               cwd=localPath)
+                subprocess.run(
+                    ["git", "remote", "add", "tmp", f"https://{token}@github.com/{remotePath}.git"], cwd=localPath
+                )
                 for file in files:
-                    path = os.path.join(localPath, file.get('path'))
-                    content = file.get('content')
+                    path = os.path.join(localPath, file.get("path"))
+                    content = file.get("content")
                     try:
-                        with open(path, 'w') as f:
+                        with open(path, "w") as f:
                             f.write(content)
                     except Exception as e:
                         print(f"Failed to overwrite file {path}: {e}")
                     subprocess.run(["git", "add", path], cwd=localPath)
                 subprocess.run(["git", "commit", "-m", message], cwd=localPath)
 
-                result = subprocess.run(["git", "push", "tmp", dstBranch], cwd=localPath, stderr=subprocess.PIPE,
-                                        text=True)
+                result = subprocess.run(
+                    ["git", "push", "tmp", dstBranch], cwd=localPath, stderr=subprocess.PIPE, text=True
+                )
                 print("err is ", result.stderr)
                 if "fatal" in result.stderr or "403" in result.stderr or "rejected" in result.stderr:
                     subprocess.run(["git", "branch", "-D", dstBranch], cwd=localPath)
@@ -1263,49 +1364,61 @@ class GitBranchCommit(View):
                     response["message"] = result.stderr
                     errcode = 7
                 else:
-                    result = subprocess.run(["git", "log", "-1", "--pretty=format:%H"], cwd=localPath,
-                                            capture_output=True, text=True)
+                    result = subprocess.run(
+                        ["git", "log", "-1", "--pretty=format:%H"], cwd=localPath, capture_output=True, text=True
+                    )
                     current_commit_sha = result.stdout.strip()
                     print(current_commit_sha)
-                    Commit.objects.create(repo_id=repo, sha=current_commit_sha, committer_name=user.name,
-                                          committer_id=user,
-                                          review_status=None)
+                    Commit.objects.create(
+                        repo_id=repo,
+                        sha=current_commit_sha,
+                        committer_name=user.name,
+                        committer_id=user,
+                        review_status=None,
+                    )
                     for file in files:
-                        FileUserCommit.objects.create(user_id=user,
-                                                      repo_id=repo,
-                                                      branch=branch, file=file['path'],
-                                                      commit_sha=current_commit_sha)
+                        FileUserCommit.objects.create(
+                            user_id=user, repo_id=repo, branch=branch, file=file["path"], commit_sha=current_commit_sha
+                        )
                         # modify Cooperate
-                        tmp = FileUserCommit.objects.filter(repo_id=repo, branch=branch, file=file['path']).exclude(
-                            user_id=user)
+                        tmp = FileUserCommit.objects.filter(repo_id=repo, branch=branch, file=file["path"]).exclude(
+                            user_id=user
+                        )
                         if tmp.exists():
                             for item in tmp:
                                 user2 = item.user_id
-                                if not Cooperate.objects.filter(user1_id=user, user2_id=user2,
-                                                                project_id=project).exists():
+                                if not Cooperate.objects.filter(
+                                    user1_id=user, user2_id=user2, project_id=project
+                                ).exists():
                                     Cooperate.objects.create(user1_id=user, user2_id=user2, project_id=project)
                                 cooperate = Cooperate.objects.get(user1_id=user, user2_id=user2, project_id=project)
                                 cooperate.relation += 1
                                 cooperate.save()
-                                if not Cooperate.objects.filter(user1_id=user2, user2_id=user,
-                                                                project_id=project).exists():
+                                if not Cooperate.objects.filter(
+                                    user1_id=user2, user2_id=user, project_id=project
+                                ).exists():
                                     Cooperate.objects.create(user1_id=user2, user2_id=user, project_id=project)
                                 cooperate = Cooperate.objects.get(user1_id=user2, user2_id=user, project_id=project)
                                 cooperate.relation += 1
                                 cooperate.save()
-                    UserProjectActivity.objects.create(user_id=user, project_id=project,
-                                                       option=UserProjectActivity.COMMIT_CODE)
+                    UserProjectActivity.objects.create(
+                        user_id=user, project_id=project, option=UserProjectActivity.COMMIT_CODE
+                    )
 
-                    content = f"您的项目\"{project.name}\"有新的提交，位于仓库\"{repo.name}\"的分支\"{branch}\"，" \
-                              f"请分配审核人员。"
+                    content = (
+                        f'您的项目"{project.name}"有新的提交，位于仓库"{repo.name}"的分支"{branch}"，'
+                        f"请分配审核人员。"
+                    )
                     for up in UserProject.objects.filter(
-                            Q(role=UserProject.ADMIN) | Q(role=UserProject.DEVELOPER),
-                            project_id=project
+                        Q(role=UserProject.ADMIN) | Q(role=UserProject.DEVELOPER), project_id=project
                     ):
-                        msg = Notice.objects.create(receiver_id=up.user_id, read=Notice.N, content=content,
-                                                    url=f"commitReview/{projectId}/{repoId}/"
-                                                        f"{branch}/{current_commit_sha}?branchName={branch}&projId={projectId}&"
-                                                        f"repoId={repoId}&commitSha={current_commit_sha}"
+                        msg = Notice.objects.create(
+                            receiver_id=up.user_id,
+                            read=Notice.N,
+                            content=content,
+                            url=f"commitReview/{projectId}/{repoId}/"
+                            f"{branch}/{current_commit_sha}?branchName={branch}&projId={projectId}&"
+                            f"repoId={repoId}&commitSha={current_commit_sha}",
                         )
                         msg.save()
 
@@ -1313,7 +1426,7 @@ class GitBranchCommit(View):
                 subprocess.run(["git", "remote", "rm", "tmp"], cwd=localPath)
                 subprocess.run(["git", "config", "--unset-all", "user.name"], cwd=localPath)
                 subprocess.run(["git", "config", "--unset-all", "user.email"], cwd=localPath)
-                response['errcode'] = errcode
+                response["errcode"] = errcode
             else:
                 return JsonResponse(genResponseStateInfo(response, 6, "wrong token with this user"))
         except Exception as e:
@@ -1324,15 +1437,15 @@ class GitBranchCommit(View):
 
 class IsProjectReviewer(View):
     def post(self, request):
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "check reviewer ok")
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        response['flag'] = 0
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        response["flag"] = 0
         if not UserProject.objects.filter(project_id=projectId, user_id=userId).exists():
             return JsonResponse(genResponseStateInfo(response, 2, "user is not in Project"))
         tmp = UserProject.objects.get(project_id=projectId, user_id=userId)
@@ -1340,13 +1453,13 @@ class IsProjectReviewer(View):
             return JsonResponse(genResponseStateInfo(response, 1, "user is not reviewer"))
         else:
             if tmp.role == UserProject.REVIEWER:
-                response['flag'] = 1
+                response["flag"] = 1
             elif tmp.role == UserProject.DEVELOPER:
-                response['flag'] = 2
+                response["flag"] = 2
             elif tmp.role == UserProject.ADMIN:
-                response['flag'] = 3
+                response["flag"] = 3
             else:
-                response['flag'] = 0
+                response["flag"] = 0
             return JsonResponse(response)
 
 
@@ -1369,25 +1482,31 @@ def getCommitComment(commitId, projectId):
             role = UserProject.objects.get(project_id=projectId, user_id=reviewer.id).role
         else:
             role = None
-        comments.append({"commenterName": reviewer.name, "comment": commit.comment, "commenterId": reviewer.id,
-                         "commenterRole": role})
+        comments.append(
+            {
+                "commenterName": reviewer.name,
+                "comment": commit.comment,
+                "commenterId": reviewer.id,
+                "commenterRole": role,
+            }
+        )
     return comments
 
 
 class GetCommitDetails(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "get commit ok")
-        sha = kwargs.get('sha')
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        branch = kwargs.get('branch')
+        sha = kwargs.get("sha")
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        branch = kwargs.get("branch")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1408,11 +1527,15 @@ class GetCommitDetails(View):
         owner = str.split(repo.remote_path, "/")[0]
         repo_name = str.split(repo.remote_path, "/")[1]
         command = [
-            "gh", "api",
-            "-H", "Accept: application/vnd.github+json",
-            "-H", "X-GitHub-Api-Version: 2022-11-28",
-            "-H", f"Authorization: token {token}",
-            f"/repos/{owner}/{repo_name}/commits/{sha}"
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "X-GitHub-Api-Version: 2022-11-28",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{owner}/{repo_name}/commits/{sha}",
         ]
         try:
             result = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -1425,25 +1548,37 @@ class GetCommitDetails(View):
             commit["sha"] = data["sha"]
 
             if not Commit.objects.filter(sha=sha).exists():
-                tmp_commit = Commit.objects.create(repo_id=repo, sha=sha,
-                                                   committer_name=data["commit"]["committer"]["name"])
+                tmp_commit = Commit.objects.create(
+                    repo_id=repo, sha=sha, committer_name=data["commit"]["committer"]["name"]
+                )
             else:
                 tmp_commit = Commit.objects.filter(sha=sha)[0]
             changes = []
             for file in data["files"]:
-                prev = subprocess.run(['git', 'show', f'{sha}^:{file["filename"]}'], text=True,
-                                      capture_output=True,
-                                      cwd=localPath)
+                prev = subprocess.run(
+                    ["git", "show", f'{sha}^:{file["filename"]}'], text=True, capture_output=True, cwd=localPath
+                )
                 if "fatal" in prev.stderr:
                     prev = None
                 else:
                     prev = prev.stdout
-                next = subprocess.run(['git', 'show', f'{sha}:{file["filename"]}'], text=True,
-                                      capture_output=True,
-                                      cwd=localPath, check=True)
+                next = subprocess.run(
+                    ["git", "show", f'{sha}:{file["filename"]}'],
+                    text=True,
+                    capture_output=True,
+                    cwd=localPath,
+                    check=True,
+                )
                 patch = file.get("patch", None)
-                changes.append({"filename": file["filename"], "status": file["status"], "patch": patch,
-                                "prev_file": prev, "now_file": next.stdout})
+                changes.append(
+                    {
+                        "filename": file["filename"],
+                        "status": file["status"],
+                        "patch": patch,
+                        "prev_file": prev,
+                        "now_file": next.stdout,
+                    }
+                )
             commit["files"] = changes
             commit["committer_name"] = tmp_commit.committer_name
             commit["comments"] = getCommitComment(tmp_commit.id, projectId)
@@ -1464,18 +1599,18 @@ class GetCommitDetails(View):
 class AssignCommitReviewer(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "assign commit reviewer ok")
-        sha = kwargs.get('sha')
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        reviewerId = kwargs.get('reviewerId')
-        branch = kwargs.get('branch')
+        sha = kwargs.get("sha")
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        reviewerId = kwargs.get("reviewerId")
+        branch = kwargs.get("branch")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1504,11 +1639,15 @@ class AssignCommitReviewer(View):
             return JsonResponse(genResponseStateInfo(response, 10, "can not assign twice"))
         tmp_commit.reviewer_id = User.objects.get(id=reviewerId)
         tmp_commit.save()
-        content = f"您有新的提交审核待处理。该提交属于项目\"{project.name}\"下的\"{repo.name}\"仓库\""
-        msg = Notice.objects.create(receiver_id=User.objects.get(id=reviewerId), read=Notice.N, content=content,
-                                    url=f"commitReview/{projectId}/{repoId}/"
-                                        f"{branch}/{sha}?branchName={branch}&projId={projectId}&"
-                                        f"repoId={repoId}&commitSha={sha}")
+        content = f'您有新的提交审核待处理。该提交属于项目"{project.name}"下的"{repo.name}"仓库"'
+        msg = Notice.objects.create(
+            receiver_id=User.objects.get(id=reviewerId),
+            read=Notice.N,
+            content=content,
+            url=f"commitReview/{projectId}/{repoId}/"
+            f"{branch}/{sha}?branchName={branch}&projId={projectId}&"
+            f"repoId={repoId}&commitSha={sha}",
+        )
         msg.save()
         return JsonResponse(response)
 
@@ -1516,17 +1655,17 @@ class AssignCommitReviewer(View):
 class AssignPrReviewer(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "assign pr reviewer ok")
-        prId = kwargs.get('prId')
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        reviewerId = kwargs.get('reviewerId')
+        prId = kwargs.get("prId")
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        reviewerId = kwargs.get("reviewerId")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1555,10 +1694,13 @@ class AssignPrReviewer(View):
             return JsonResponse(genResponseStateInfo(response, 10, "can not assign twice"))
         pr.reviewer_id = User.objects.get(id=reviewerId)
         pr.save()
-        content = f"您有新的合并请求审核待处理。该合并请求属于项目\"{project.name}\"下的\"{repo.name}\"仓库\""
-        msg = Notice.objects.create(receiver_id=User.objects.get(id=reviewerId), read=Notice.N, content=content,
-                                    url=f"prReview/{projectId}/{repoId}/{prId}"
-                                        f"?prId={prId}&projId={projectId}&repoId={repoId}")
+        content = f'您有新的合并请求审核待处理。该合并请求属于项目"{project.name}"下的"{repo.name}"仓库"'
+        msg = Notice.objects.create(
+            receiver_id=User.objects.get(id=reviewerId),
+            read=Notice.N,
+            content=content,
+            url=f"prReview/{projectId}/{repoId}/{prId}" f"?prId={prId}&projId={projectId}&repoId={repoId}",
+        )
         msg.save()
         return JsonResponse(response)
 
@@ -1566,17 +1708,17 @@ class AssignPrReviewer(View):
 class ModifyCommitStatus(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "modify commit status ok")
-        sha = kwargs.get('sha')
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        status = kwargs.get('reviewStatus')
+        sha = kwargs.get("sha")
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        status = kwargs.get("reviewStatus")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1605,32 +1747,31 @@ class ModifyCommitStatus(View):
             tmp_commit.review_status = Commit.Y if status == 1 else Commit.N
             tmp_commit.save()
             if status == 1:
-                content = f"您的提交已被同意。该提交属于项目\"{project.name}\"下的\"{repo.name}\"仓库\""
+                content = f'您的提交已被同意。该提交属于项目"{project.name}"下的"{repo.name}"仓库"'
             else:
-                content = f"您的提交已被拒绝。该提交属于项目\"{project.name}\"下的\"{repo.name}\"仓库\""
+                content = f'您的提交已被拒绝。该提交属于项目"{project.name}"下的"{repo.name}"仓库"'
             if tmp_commit.committer_id is not None:
                 msg = Notice.objects.create(receiver_id=tmp_commit.committer_id, read=Notice.N, content=content)
                 msg.save()
         else:
-            return JsonResponse(
-                genResponseStateInfo(response, 10, "wrong review status, must approve/reject please"))
+            return JsonResponse(genResponseStateInfo(response, 10, "wrong review status, must approve/reject please"))
         return JsonResponse(response)
 
 
 class CommentCommit(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "comment commit ok")
-        sha = kwargs.get('sha')
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        comment = kwargs.get('comment')
+        sha = kwargs.get("sha")
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        comment = kwargs.get("comment")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1663,13 +1804,13 @@ class CommentCommit(View):
 class ShowCanAssociateTasks(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "show associate tasks ok")
-        projectId = kwargs.get('projectId')
+        projectId = kwargs.get("projectId")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1686,17 +1827,17 @@ class ShowCanAssociateTasks(View):
 class AssociatePrTask(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "associate pr with task ok")
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        prId = kwargs.get('prId')
-        taskId = kwargs.get('taskId')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        prId = kwargs.get("prId")
+        taskId = kwargs.get("taskId")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1736,17 +1877,17 @@ class AssociatePrTask(View):
 class ResolvePr(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "pr resolve ok")
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        prId = kwargs.get('prId')
-        action = kwargs.get('action')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        prId = kwargs.get("prId")
+        action = kwargs.get("action")
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -1778,22 +1919,33 @@ class ResolvePr(View):
         try:
             if action == 0:
                 command = [
-                    "gh", "api",
-                    "--method", "PATCH",
-                    "-H", "Accept: application/vnd.github+json",
-                    "-H", "X-GitHub-Api-Version: 2022-11-28",
-                    "-H", f"Authorization: token {token}",
+                    "gh",
+                    "api",
+                    "--method",
+                    "PATCH",
+                    "-H",
+                    "Accept: application/vnd.github+json",
+                    "-H",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                    "-H",
+                    f"Authorization: token {token}",
                     f"/repos/{owner}/{repo_name}/pulls/{prId}",
-                    "-f", "state=closed"
+                    "-f",
+                    "state=closed",
                 ]
             else:
                 command = [
-                    "gh", "api",
-                    "--method", "PUT",
-                    "-H", "Accept: application/vnd.github+json",
-                    "-H", "X-GitHub-Api-Version: 2022-11-28",
-                    "-H", f"Authorization: token {token}",
-                    f"/repos/{owner}/{repo_name}/pulls/{prId}/merge"
+                    "gh",
+                    "api",
+                    "--method",
+                    "PUT",
+                    "-H",
+                    "Accept: application/vnd.github+json",
+                    "-H",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                    "-H",
+                    f"Authorization: token {token}",
+                    f"/repos/{owner}/{repo_name}/pulls/{prId}/merge",
                 ]
 
             result = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -1813,19 +1965,27 @@ class ResolvePr(View):
                 pr.status = Pr.MERGED if action == 1 else Pr.CLOSED
             else:
                 command = [
-                    "gh", "api",
-                    "-H", "Accept: application/vnd.github+json",
-                    "-H", "X-GitHub-Api-Version: 2022-11-28",
-                    "-H", f"Authorization: token {token}",
-                    f"/repos/{owner}/{repo_name}/pulls/{prId}"
+                    "gh",
+                    "api",
+                    "-H",
+                    "Accept: application/vnd.github+json",
+                    "-H",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                    "-H",
+                    f"Authorization: token {token}",
+                    f"/repos/{owner}/{repo_name}/pulls/{prId}",
                 ]
                 output = subprocess.run(command, capture_output=True, text=True, check=True)
                 output = json.loads(output.stdout)
                 print("+++++++++++\n", output)
-                pr = Pr.objects.create(repo_id=repo, src_branch=output["head"]["label"].split(':')[1],
-                                       dst_branch=output["base"]["label"].split(':')[1],
-                                       pr_number=output["number"], applicant_name=output["user"]["login"],
-                                       pr_status=Pr.MERGED if action == 1 else Pr.CLOSED)
+                pr = Pr.objects.create(
+                    repo_id=repo,
+                    src_branch=output["head"]["label"].split(":")[1],
+                    dst_branch=output["base"]["label"].split(":")[1],
+                    pr_number=output["number"],
+                    applicant_name=output["user"]["login"],
+                    pr_status=Pr.MERGED if action == 1 else Pr.CLOSED,
+                )
             pr.reviewer_id = user
             pr.save()
 
@@ -1847,14 +2007,13 @@ class ResolvePr(View):
                         i.complete_time = datetime.datetime.now()
                         print(i.id, " is completed with pr")
                         i.save()
-            UserProjectActivity.objects.create(user_id=user, project_id=project,
-                                               option=UserProjectActivity.FINISH_TASK)
-            response['errcode'] = errcode
+            UserProjectActivity.objects.create(user_id=user, project_id=project, option=UserProjectActivity.FINISH_TASK)
+            response["errcode"] = errcode
             if errcode == 0:
                 if action == 1:
-                    content = f"您的合并请求已被同意。该pr属于项目\"{project.name}\"下的\"{repo.name}\"仓库\""
+                    content = f'您的合并请求已被同意。该pr属于项目"{project.name}"下的"{repo.name}"仓库"'
                 else:
-                    content = f"您的合并请求已被拒绝。该pr属于项目\"{project.name}\"下的\"{repo.name}\"仓库\""
+                    content = f'您的合并请求已被拒绝。该pr属于项目"{project.name}"下的"{repo.name}"仓库"'
                 if pr.applicant_id is not None:
                     msg = Notice.objects.create(receiver_id=pr.applicant_id, read=Notice.N, content=content)
                     msg.save()
@@ -1892,16 +2051,16 @@ def parsePrStatus(status):
 class GetPrDetails(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "get pr details ok")
-        prId = kwargs.get('prId')
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
+        prId = kwargs.get("prId")
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
 
         project = isProjectExists(projectId)
         if project == None:
@@ -1923,20 +2082,28 @@ class GetPrDetails(View):
         owner = str.split(repo.remote_path, "/")[0]
         repo_name = str.split(repo.remote_path, "/")[1]
         command = [
-            "gh", "api",
-            "-H", "Accept: application/vnd.github+json",
-            "-H", "X-GitHub-Api-Version: 2022-11-28",
-            "-H", f"Authorization: token {token}",
-            f"/repos/{owner}/{repo_name}/pulls/{prId}"
+            "gh",
+            "api",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "X-GitHub-Api-Version: 2022-11-28",
+            "-H",
+            f"Authorization: token {token}",
+            f"/repos/{owner}/{repo_name}/pulls/{prId}",
         ]
         try:
             result = subprocess.run(command, capture_output=True, text=True, check=True)
             output = result.stdout
             jsonOutput = json.loads(output)
             if not Pr.objects.filter(pr_number=prId, repo_id=repo).exists():
-                pr = Pr.objects.create(repo_id=repo, src_branch=jsonOutput["head"]["label"].split(':')[1],
-                                       dst_branch=jsonOutput["base"]["label"].split(':')[1],
-                                       pr_number=prId, applicant_name=jsonOutput["user"]["login"])
+                pr = Pr.objects.create(
+                    repo_id=repo,
+                    src_branch=jsonOutput["head"]["label"].split(":")[1],
+                    dst_branch=jsonOutput["base"]["label"].split(":")[1],
+                    pr_number=prId,
+                    applicant_name=jsonOutput["user"]["login"],
+                )
             else:
                 pr = Pr.objects.get(repo_id=repo, pr_number=prId)
             pr.pr_status = getPrStatus(jsonOutput["state"], jsonOutput["merged"])
@@ -1946,7 +2113,7 @@ class GetPrDetails(View):
                 "title": jsonOutput["title"],
                 "body": jsonOutput["body"],
                 "reviewerName": pr.reviewer_id.name if pr.reviewer_id is not None else None,
-                "reviewerId": pr.reviewer_id.id if pr.reviewer_id is not None else None, 
+                "reviewerId": pr.reviewer_id.id if pr.reviewer_id is not None else None,
                 "merge_commit_sha": jsonOutput["merge_commit_sha"],
                 "branch": jsonOutput["head"]["ref"],
                 "base": jsonOutput["base"]["ref"],
@@ -1955,14 +2122,18 @@ class GetPrDetails(View):
                 "updated_time": jsonOutput["updated_at"],
                 "closed_time": jsonOutput["closed_at"],
                 "merged_time": jsonOutput["merged_at"],
-                "commits": []
+                "commits": [],
             }
             command = [
-                "gh", "api",
-                "-H", "Accept: application/vnd.github+json",
-                "-H", "X-GitHub-Api-Version: 2022-11-28",
-                "-H", f"Authorization: token {token}",
-                f"/repos/{owner}/{repo_name}/pulls/{prId}/commits"
+                "gh",
+                "api",
+                "-H",
+                "Accept: application/vnd.github+json",
+                "-H",
+                "X-GitHub-Api-Version: 2022-11-28",
+                "-H",
+                f"Authorization: token {token}",
+                f"/repos/{owner}/{repo_name}/pulls/{prId}/commits",
             ]
             res = subprocess.run(command, capture_output=True, text=True, check=True)
             out = json.loads(res.stdout)
@@ -1972,14 +2143,17 @@ class GetPrDetails(View):
                     commit_obj = Commit.objects.get(sha=sha)
                 else:
                     commit_obj = Commit.objects.create(
-                        repo_id=repo,
-                        sha=sha,
-                        committer_name=commit["commit"]["committer"]["name"]
+                        repo_id=repo, sha=sha, committer_name=commit["commit"]["committer"]["name"]
                     )
-                data["commits"].append({"commitId": commit_obj.pk,
-                                        "sha": sha, "author": commit["commit"]["author"]["name"],
-                                        "time": commit["commit"]["author"]["date"],
-                                        "message": commit["commit"]["message"]})
+                data["commits"].append(
+                    {
+                        "commitId": commit_obj.pk,
+                        "sha": sha,
+                        "author": commit["commit"]["author"]["name"],
+                        "time": commit["commit"]["author"]["date"],
+                        "message": commit["commit"]["message"],
+                    }
+                )
             response["data"] = data
             return JsonResponse(response)
         except subprocess.CalledProcessError as e:
@@ -1993,17 +2167,17 @@ class GetPrDetails(View):
 class GetFileCommits(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "get user commits for file ok")
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        file = kwargs.get('file')
-        branch = kwargs.get('branch')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        file = kwargs.get("file")
+        branch = kwargs.get("branch")
 
         project = isProjectExists(projectId)
         if project == None:
@@ -2028,8 +2202,14 @@ class GetFileCommits(View):
             print(fuc.commit_sha)
         data = []
         for key in commits.keys():
-            data.append({"userId": key, "userName": User.objects.get(id=key).name, "commits": commits[key],
-                         "count": len(commits[key])})
+            data.append(
+                {
+                    "userId": key,
+                    "userName": User.objects.get(id=key).name,
+                    "commits": commits[key],
+                    "count": len(commits[key]),
+                }
+            )
         response["data"] = data
         return JsonResponse(response)
 
@@ -2037,14 +2217,14 @@ class GetFileCommits(View):
 class GetPrAssociatedTasks(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "get pr associated tasks ok")
-        prId = kwargs.get('prId')
-        repoId = kwargs.get('repoId')
+        prId = kwargs.get("prId")
+        repoId = kwargs.get("repoId")
         repo = Repo.objects.get(id=repoId)
         if repo is None:
             return JsonResponse(genResponseStateInfo(response, 2, "no such repo"))
@@ -2059,10 +2239,7 @@ class GetPrAssociatedTasks(View):
             else:
                 pt_set.add((prId, pt.task_id_id))
             task = Task.objects.get(id=pt.task_id_id)
-            data.append({
-                "taskName": task.name,
-                "taskId": task.id
-            })
+            data.append({"taskName": task.name, "taskId": task.id})
         response["data"] = data
         return JsonResponse(response)
 
@@ -2070,18 +2247,18 @@ class GetPrAssociatedTasks(View):
 class DeletePrTask(View):
     def post(self, request):
         DBG("---- in " + sys._getframe().f_code.co_name + " ----")
-        response = {'message': "404 not success", "errcode": -1}
+        response = {"message": "404 not success", "errcode": -1}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
         genResponseStateInfo(response, 0, "delete pr associated task ok")
 
-        userId = kwargs.get('userId')
-        projectId = kwargs.get('projectId')
-        repoId = kwargs.get('repoId')
-        prId = kwargs.get('prId')
-        taskId = kwargs.get('taskId')
+        userId = kwargs.get("userId")
+        projectId = kwargs.get("projectId")
+        repoId = kwargs.get("repoId")
+        prId = kwargs.get("prId")
+        taskId = kwargs.get("taskId")
 
         project = isProjectExists(projectId)
         if project == None:

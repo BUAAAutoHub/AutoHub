@@ -9,7 +9,7 @@ import json
 import os
 import shutil
 import sys
-from myApp.userdevelop import genResponseStateInfo, genUnexpectedlyErrorInfo
+from myApp.utils.projects.userdevelop import genResponseStateInfo, genUnexpectedlyErrorInfo
 import random
 
 

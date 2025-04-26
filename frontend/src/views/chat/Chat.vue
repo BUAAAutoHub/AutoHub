@@ -222,8 +222,8 @@ export default {
           })
         },
         initWS(rid) {
-          console.log('initWS: connecting to ws://127.0.0.1/:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
-          const socket = new WebSocket('ws://127.0.0.1:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
+          console.log('initWS: connecting to ws://127.0.0.1/:8001/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
+          const socket = new WebSocket('ws://127.0.0.1:8001/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
 
           const onopen = (e) => {
             console.log('socket opened')

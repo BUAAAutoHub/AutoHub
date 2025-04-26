@@ -7,6 +7,13 @@ from myApp.models import Group, User, Message, UserGroup
 
 
 class ChatConsumer(WebsocketConsumer):
+    '''
+        Date        :   2025/4/18
+        Author      :   tangling
+        Description :   通过 Django Channels 技术实现
+                        一个基于 WebSocket 的聊天室功能
+                        用户可以加入特定房间进行实时聊天
+    '''
     def connect(self):
         # get roomid from websocket request url kwargs
         self.room_id = int(self.scope['url_route']['kwargs']['roomId'])
@@ -31,10 +38,13 @@ class ChatConsumer(WebsocketConsumer):
         )
 
     def receive(self, text_data=None, bytes_data=None):
+        # check if text_data is not none
         assert text_data is not None
+
         # read the message from webcokect scope['text']['message']
         ws_json_data = json.loads(text_data)
-        message_content, send_user_id = str(ws_json_data['message']), int(ws_json_data['sender'])
+        message_content, send_user_id = str(ws_json_data['message']),
+        int(ws_json_data['sender'])
 
         send_user = User.objects.get(id=send_user_id)
         send_time = datetime.datetime.now()

@@ -8,3 +8,4 @@ json5
 openai
 transformers
 nltk
+dotenv
