@@ -21,19 +21,41 @@ def get_room_content_api(roomId: int, user: User):
     return messages
 
 
-def get_room_content(request):
+def _get_room_content_(request):
     """
     Date        :   2025/4/19
     Author      :   yanfan
     Description :   获取房间聊天记录
     """
     kwargs: dict = json.loads(request.body)
-    roomId = int(request.GET.get("roomId"))
+    roomId = kwargs.get("roomId") # int(request.GET.get("roomId"))
     group = Group.objects.get(id=roomId)
-    user = User.objects.get(id=int(request.session["userId"]))
+    user = User.objects.get(id=kwargs.get("userId"))
     messages = get_room_content_api(roomId, user)
     return response_json(errcode=SUCCESS, data={"messages": messages})
 
+
+def get_room_content(request):
+    kwargs: dict = json.loads(request.body)
+    roomId = int(kwargs.get('roomId'))
+    group = Group.objects.get(id = roomId)
+    user = User.objects.get(id = int(kwargs.get('userId')))
+ 
+    messages = [
+        {
+            'content': message.content,
+            'senderName': message.send_user.name,
+            'senderId': message.send_user.id,
+            'time': message.time
+        } for message in Message.objects.filter(group_id = roomId, receive_user = user)
+    ]
+ 
+    return response_json(
+        errcode = SUCCESS,
+        data = {
+            'messages': messages
+        }
+    )
 
 def get_user_public_groups(request):
     """

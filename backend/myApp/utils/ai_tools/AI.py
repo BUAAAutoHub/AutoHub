@@ -7,36 +7,41 @@ import json
 import datetime
 from djangoProject.settings import BASE_DIR
 from myApp.models import *
-from myApp.utils.projects.userdevelop import (
-    genResponseStateInfo,
-    isUserInProject,
-    isProjectExists,
-    is_independent_git_repository,
-    genUnexpectedlyErrorInfo,
-    validate_token,
-)
+from myApp.utils.projects.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
+    genUnexpectedlyErrorInfo, validate_token
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, SummarizationPipeline
 import nltk
 from nltk.tokenize import WordPunctTokenizer
 
+from myApp.models import *
 from myApp.utils.ai_tools.ai_utils import *
+from myApp.utils.projects.userChat import get_room_content_api
 
 pipeline = None
+os.environ['GH_TOKEN'] = 'ghp_123456'
 
 
-"""
+'''
     Models:
         代码分析 - API
         Label生成 - API
         Commit Msg生成 - codeTrans
 
-    其实codeTrans能够执行的任务：
+    其实codeTrans能够执行的任务:
         1. 代码文档生成
         2. 代码摘要生成
         3. 代码评论生成
         4. Git提及信息生成
     ref: https://aclanthology.org/P18-1103.pdf
-"""
+
+    urls:
+    path("api/ai/prompt", AI.PromptGenerateCode.as_view()),
+    path("api/ai/codeReview", AI.GenerateCodeReview.as_view()),
+    path("api/ai/unitTest", AI.GenerateUnitTest.as_view()),
+    path("api/ai/summary", AI.SummarizeDiscussion.as_view()),
+    path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
+    path("api/ai/generateLabel", AI.GenerateLabelwithDiscription.as_view()),
+'''
 
 
 def load_codeTrans_model():
@@ -47,139 +52,168 @@ def load_codeTrans_model():
         pipeline = SummarizationPipeline(
             model=AutoModelForSeq2SeqLM.from_pretrained(model_path),
             tokenizer=AutoTokenizer.from_pretrained(model_path),
-            device="cpu",
+            device="cpu"
         )
 
 
-"""
-    统一把用户端输入写到request['text']里面
+'''
+    path("api/ai/prompt", AI.PromptGenerateCode.as_view()),
     返回: response('answer')
-"""
-
-
+'''
 class PromptGenerateCode(View):
     def post(self, request):
-        response = {"errcode": 0, "message": "404 not success"}
+        response = {'errcode': 0, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
-
-        text = kwargs.get("text")
+        
+        text = kwargs.get("message")
 
         reply = simple_llm_generate(text)
 
-        response = {"answer": reply}
+        response = {'reply': reply}
 
         return JsonResponse(response)
 
-
+'''
+    path("api/ai/codeReview", AI.GenerateCodeReview.as_view()),
+'''
 class GenerateCodeReview(View):
     def post(self, request):
-        response = {"errcode": 0, "message": "404 not success"}
+        response = {'errcode': 0, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
-
-        text = kwargs.get("text")
+        
+        text = kwargs.get("code")
 
         reply = simple_llm_generate(text)
 
-        response = {"answer": reply}
+        response = {'reply': reply}
 
         return JsonResponse(response)
 
 
-"""
-    直接把讨论拼接成一个字符串传入即可
-    'text' 讨论, 'pid' 项目id
-"""
-
-
-class SummarizeDiscussion(View):
+'''
+    path("api/ai/unitTest", AI.GenerateUnitTest.as_view()),
+'''
+class GenerateUnitTest(View):
     def post(self, request):
-        response = {"errcode": 0, "message": "404 not success"}
+        response = {'errcode': 0, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
+        
+        text = kwargs.get("code")
 
+        conditional_prompt = "Please generate unit test for the following code: "
+
+        reply = simple_llm_generate(conditional_prompt + text)
+
+        response = {'reply': reply}
+
+        return JsonResponse(response)
+
+
+'''
+    path("api/ai/summary", AI.SummarizeDiscussion.as_view()),
+'''
+class SummarizeDiscussion(View):
+    def post(self, request):
+        response = {'errcode': 0, 'message': "404 not success"}
         try:
-            text = kwargs.get("text")
-            pid = kwargs.get("pid")
+            kwargs: dict = json.loads(request.body)
         except Exception:
-            response = {"errcode": 1, "message": "keys not found"}
+            return JsonResponse(response)
+    
+        try:
+            pid = kwargs.get("pid")
+            rid = kwargs.get("rid")
+            uid = kwargs.get("uid")
+        except Exception:
+            response = {'errcode': 1, 'message': "keys not found"}
             return JsonResponse(response)
 
-        conditional_prompt = (
-            "Please summarize the following contexts briefly and refine the response by Question-Answer pair. "
-            "We wish the response belikes multi-turns conversation, "
-            "please explicitly use signals like <Question> and <Answer> and use <end> to denotes it's finish."
-            "Hence, your answer should follows: "
-            "<Question>: sth. <end> <Answer>: sth. <end> <Question>: sth. <end> <Answer>: sth. <end> ..."
-        )
+        user = User.objects.get(user_id=uid)
 
-        reply = simple_llm_generate(text + conditional_prompt)
+        text = get_room_content_api(rid, user)
+        text = formatting_discussion_context(text)
+
+        conditional_prompt = "Please summarize the following contexts briefly and refine the response by Question-Answer pair. " \
+        "We wish the response belikes multi-turns conversation, " \
+        "please explicitly use signals like <Question>, <Answer> and <end> to represent the start and end" \
+        "Hence, your answer should follows: " \
+        "<Question>: sth. <end> <Answer>: sth. <end> <Question>: sth. <end> <Answer>: sth. <end> ..."
+
+        reply = simple_llm_generate(conditional_prompt + text)
 
         qa_pairs = knowledge_formatting(reply)
         save_to_knowledge_database(pid, qa_pairs)
 
-        # save_to_database(reply)
-
-        response = {"answer": reply}
+        response = {'reply': reply}
 
         return JsonResponse(response)
 
 
-"""
-    'text' 问题, 'pid' 项目id
-    有个问题：是否要支持多轮对话？
-"""
-
-
+'''
+    path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
+    支持多轮对话, 需要返回context
+'''
 class ChatWithProjectExpert(View):
     def post(self, request):
-        response = {"errcode": 0, "message": "404 not success"}
+        response = {'errcode': 0, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
-
+        
         try:
-            text = kwargs.get("text")
+            text = kwargs.get("message")
+            prefixs = kwargs.get("context")
             pid = kwargs.get("pid")
         except Exception:
-            response = {"errcode": 1, "message": "keys not found"}
+            response = {'errcode': 1, 'message': "keys not found"}
             return JsonResponse(response)
 
-        # prefixs = load_knowledge_formating_qa(pid)
-        prefixs = load_knowledge_formating_conversation(pid)
+        print(f"this is prefixs : {prefixs}===========")
 
-        reply = memorized_llm_generate(text, prefixs)
+        # TODO check
+        if len(prefixs) == 0:
+            if pid != -1:
+                prefixs = load_knowledge_formatting_conversation(pid)
+            else:
+                pass
+        else:
+            prefixs = context_decode(prefixs)
 
-        response = {"answer": reply}
+        reply, context = memorized_llm_generate(text, prefixs)
 
+        response = {'reply': reply, "context": context_encode(context)}
+        print(response)
         return JsonResponse(response)
 
 
+'''
+    path("api/ai/generateLabel", AI.GenerateLabelwithDiscription.as_view()),
+'''
 class GenerateLabelwithDiscription(View):
     def post(self, request):
-        response = {"errcode": 0, "message": "404 not success"}
+        response = {'errcode': 0, 'message': "404 not success"}
         try:
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
-        text = kwargs.get("text")
-        conditional_prompt_pre = "Given the following description: "
-        conditional_prompt_post = (
-            "select appropriate tags from the following list to summarize it: "
-            "bug, documentation, duplicate, enhancement, good first issue, help wanted, invalid, question, wontfix"
-        )
+        text = kwargs.get('text')
+        conditional_prompt_pre = "Given the following description: \n"
+        conditional_prompt_post = "\nSelect appropriate tags from the following list to summarize it: " \
+                        "bug, documentation, duplicate, enhancement, good first issue, help wanted, invalid, question, wontfix"
 
         reply = simple_llm_generate(conditional_prompt_pre + text + conditional_prompt_post)
 
-        response = {"answer": reply}
+        response = {'reply': reply}
 
         return JsonResponse(response)
 
@@ -289,3 +323,5 @@ class GenerateLabelwithDiscription(View):
 #         response['message'] = "success"
 #         response['data'] = chat["choices"][0]["message"]["content"]
 #         return JsonResponse(response)
+
+

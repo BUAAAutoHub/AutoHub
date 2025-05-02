@@ -166,4 +166,12 @@ urlpatterns = [
     # BOT 功能 api
     path("api/bot/createBot", projectBot.BotCreate.as_view()),
     path("api/bot/disableBot", projectBot.DisableBot.as_view()),
+
+    # AI api
+    path("api/ai/prompt", AI.PromptGenerateCode.as_view()),
+    path("api/ai/codeReview", AI.GenerateCodeReview.as_view()),
+    path("api/ai/unitTest", AI.GenerateUnitTest.as_view()),
+    path("api/ai/summary", AI.SummarizeDiscussion.as_view()),
+    path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
+    path("api/ai/generateLabel", AI.GenerateLabelwithDiscription.as_view()),
 ]
