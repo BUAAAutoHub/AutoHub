@@ -69,17 +69,16 @@ const router = new VueRouter({
       component: () => import('../views/Login.vue'),
       meta: { requireLogin: false }
     },
-    // {
-    //   path: '/register',
-    //   name: 'register',
-    //   component: () => import('../views/Register.vue')
-    // },
     {
       path: '/dev',
       name: 'dev',
       component: () => import('../views/Dev.vue')
     },
-    // todo: 后端加上协同编辑！
+    {
+      path: '/dev/bot/:userid/:projid/:repoid',
+      name: 'bot',
+      component: () => import('../views/dev/Bot/Bot.vue')
+    },
     {
       path: '/room',
       name: '协同编辑房间',
