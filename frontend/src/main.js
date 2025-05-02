@@ -26,13 +26,13 @@ VueMarkdownEditor.use(vuepressTheme);
 VueMarkdownEditor.use(createKatexPlugin());
 Vue.use(VueMarkdownEditor);
 VueMarkdownEditor.use(vuepressTheme, {
-  Prism,
-  extend(md) {
-    // md为 markdown-it 实例，可以在此处进行修改配置,并使用 plugin 进行语法扩展
-    // md.set(option).use(plugin);
-  },
+    Prism,
+    extend(md) {
+        // md为 markdown-it 实例，可以在此处进行修改配置,并使用 plugin 进行语法扩展
+        // md.set(option).use(plugin);
+    },
 });
-axios.defaults.baseURL = 'http://127.0.0.1:8001/'
+axios.defaults.baseURL = 'http://127.0.0.1:8000/'
 Vue.use(ElementUI, axios, VueAxios)
 axios.defaults.withCredentials = true;
 Vue.use(mavonEditor);
@@ -41,7 +41,7 @@ Vue.component('AllTask', AllTask);
 Vue.component('AllFile', AllFile);
 Vue.use(vGanttChart);
 new Vue({
-  router,
-  vuetify,
-  render: (h) => h(App)
+    router,
+    vuetify,
+    render: (h) => h(App)
 }).$mount('#app')

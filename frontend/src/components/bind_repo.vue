@@ -82,8 +82,8 @@ export default {
 
           <v-expand-transition>
             <v-card-text v-if="(!(gh_reponame === '' || gh_username === ''))">
-              通过点击绑定按钮，您同意JiHub读取代码存储库的文件、提交记录、分支、问题、和并请求等公开可见的信息。<br>
-              JiHub<strong>不会</strong>对您的代码存储库做任何修改，也<strong>不会</strong>向您的代码存储库中添加任何文件。<br>
+              通过点击绑定按钮，您同意AutoHub读取代码存储库的文件、提交记录、分支、问题、和并请求等公开可见的信息。<br>
+              AutoHub<strong>不会</strong>对您的代码存储库做任何修改，也<strong>不会</strong>向您的代码存储库中添加任何文件。<br>
               您可能需要将GitHub代码存储库可见权限设置为公开（public）才能成功绑定。<br>
               （beta测试期间）如果您不愿公开您的仓库，可以添加用户TrickEye为需要绑定的仓库的Collaborator。
             </v-card-text>

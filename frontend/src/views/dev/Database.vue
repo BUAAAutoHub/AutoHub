@@ -112,7 +112,7 @@ export default {
 
       const names = name.split('-')
       if (names.length !== 5) {
-        console.log(filename + ' does not seem to be a valid file in jihub database, skipping...')
+        console.log(filename + ' does not seem to be a valid file in AutoHub database, skipping...')
         return null
       } else {
         let name = names[0]
@@ -179,7 +179,7 @@ export default {
     onFileInput() {
       console.log('on file input')
       if (this.fileInput !== undefined && this.fileInput !== null && this.fileInput.size >= 50000000) {
-        this.$msgbox('文件大小超过50MB，JiHub暂时不支持过大的文件上传', '文件过大')
+        this.$msgbox('文件大小超过50MB，AutoHub暂时不支持过大的文件上传', '文件过大')
         this.fileInput = null
       }
       if (this.changeNameAllow && Object.keys(this.entries).indexOf(this.fileInput.name) !== -1) {
@@ -193,7 +193,7 @@ export default {
         this.$msgbox('选择的文件与文件系列名不同，请注意检查', '文件名不同')
       }
       if (this.changeNameAllow && this.fileInput !== undefined && this.fileInput.name.indexOf('-') !== -1) {
-        this.$msgbox('选中的文件名含有\'-\'，不过，您可以在JiHub修改此文件名', '含有非法符号')
+        this.$msgbox('选中的文件名含有\'-\'，不过，您可以在AutoHub修改此文件名', '含有非法符号')
       }
     },
     getTopicColor: topicSetting.getColor,
@@ -279,7 +279,7 @@ export default {
         <v-hover v-slot="{hover}">
           <v-card @click="() => initUploadDialog(null)" min-height="13rem" max-height="13rem" :style="hover ? getRadialGradient(user.topic) : ''">
             <v-card-title><strong :style="'color: ' + getDarkColor(user.topic)">创建新的文件系列</strong></v-card-title>
-            <v-card-text>上传一个文件，使用版本代码在JiHub上持续追溯，随时下载，项目成员也可上传最新进展</v-card-text>
+            <v-card-text>上传一个文件，使用版本代码在AutoHub上持续追溯，随时下载，项目成员也可上传最新进展</v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn @click="() => initUploadDialog(null)" plain>开始</v-btn>

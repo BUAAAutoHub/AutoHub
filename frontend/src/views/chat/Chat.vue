@@ -222,8 +222,8 @@ export default {
           })
         },
         initWS(rid) {
-          console.log('initWS: connecting to ws://127.0.0.1/:8001/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
-          const socket = new WebSocket('ws://127.0.0.1:8001/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
+          console.log('initWS: connecting to ws://127.0.0.1/:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
+          const socket = new WebSocket('ws://127.0.0.1:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
 
           const onopen = (e) => {
             console.log('socket opened')
@@ -307,7 +307,7 @@ export default {
                 this.messageServiceAvailable = true;
                 const notification = new Notification('已注册消息通知', {
                   icon: '../../favicon.ico',
-                  body: "消息通知已开启，JiHub会在收到新消息时显示提醒",
+                  body: "消息通知已开启，AutoHub会在收到新消息时显示提醒",
                 })
               } else {
                 console.log('Notification permission denied')
