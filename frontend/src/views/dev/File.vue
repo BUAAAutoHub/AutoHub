@@ -354,8 +354,60 @@ export default {
     getTopicColor: topicSetting.getDarkColor,
     getRadialGradient: topicSetting.getRadialGradient,
     getLinearGradient: topicSetting.getLinearGradient,
+    onClickCollab() {
+        console.log('entered method: onClickCollab');
+        if (!this.curFilePath || !this.fileContent) {
+            this.$message({
+            type: 'warning',
+            message: '请先选择一个文件进行协同编辑'
+            });
+            return;
+        }
+        // 获取当前文件 & 工作区
+        const filePath = this.curFilePath;
+        const fileType = this.curType;
+        const content = this.cmEditor.getValue();
+
+        // 生成roomName
+        const roomName = `${this.user.id}_${Date.now()}`;
+
+        // todo 定期清理 存入 localStorage 以便协同页面读取
+        const collabData = {
+            filePath,
+            fileType,
+            content,
+            userId: this.user.id,
+            projId: this.proj.projectId,
+            roomName: roomName,
+            repoId: this.$route.params.repoid,
+            branch: this.branchName
+        };
+        localStorage.setItem(`collab_${roomName}`, JSON.stringify(collabData));
+
+        // 生成链接
+        const baseUrl = window.location.origin;
+        // todo 链接待修改
+        const collabUrl = `${baseUrl}/room?roomName=${roomName}`;
+
+        // 提示用户复制链接邀请他人
+        this.$prompt('复制以下链接邀请他人加入协同编辑：', '协同编辑链接', {
+            confirmButtonText: '点击进入协同编辑',
+            inputValue: collabUrl,
+            inputReadonly: true,
+            closeOnClickModal: false,
+            beforeClose: (action, instance, done) => {
+                if (action === 'confirm') {
+                    console.log("file content: "+this.fileContent);
+                    sessionStorage.setItem('fileContent', this.fileContent);
+                    window.open(`/room?roomName=${roomName}&host=true`, '_blank');
+                }
+                done();
+            }
+        });
+
+    },
     showContribution() {
-      console.log('11111')
+      console.log('enter method: showContribution')
       if (!this.curFilePath) {
         this.$message.error('还未选择文件！')
       } else {
@@ -475,6 +527,10 @@ export default {
         downloadStrAsFile(this.fileContent, name);
       } else if (command == "c") {
         this.newFile();
+      } else if(command == "d") {
+        // 多人协同编辑
+        console.log("clicked collaborative editing");
+        this.onClickCollab();
       }
     },
 
@@ -638,39 +694,12 @@ export default {
 
 <template>
   <v-container>
-    <!-- <v-row>
-      <v-col>
-        <el-dropdown size="small" split-button type="primary">
-          小型尺寸
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item>黄金糕</el-dropdown-item>
-            <el-dropdown-item>狮子头</el-dropdown-item>
-            <el-dropdown-item>螺蛳粉</el-dropdown-item>
-            <el-dropdown-item>双皮奶</el-dropdown-item>
-            <el-dropdown-item>蚵仔煎</el-dropdown-item>
-          </el-dropdown-menu>
-        </el-dropdown>
-        <el-dropdown>
-          <el-button type="primary">
-            更多菜单<i class="el-icon-arrow-down el-icon--right"></i>
-          </el-button>
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item>黄金糕</el-dropdown-item>
-            <el-dropdown-item>狮子头</el-dropdown-item>
-            <el-dropdown-item>螺蛳粉</el-dropdown-item>
-            <el-dropdown-item>双皮奶</el-dropdown-item>
-            <el-dropdown-item>蚵仔煎</el-dropdown-item>
-          </el-dropdown-menu>
-        </el-dropdown>
-      </v-col>
-    </v-row> -->
     <v-row style="margin-top: 20px">
-      <!-- <v-col :cols="fileContentReady ? 2 : 3"> -->
       <v-col :cols="fileContentReady ? 2 : 3">
         <div class="tabs-menu">
           <h2>文件树</h2>
         </div>
-        <v-card min-height="calc(100vh - 500px)" max-height="calc(100vh - 500px)" class="overflow-y-auto">
+        <v-card height="300px" class="overflow-y-auto">
           <v-treeview v-if="fileTreeReady" :items="items" :activatable="!treeDisable" :active.sync="tree" item-key="name"
             open-on-click dense return-object>
             <template v-slot:prepend="{ item, open }">
@@ -685,10 +714,14 @@ export default {
           <v-skeleton-loader v-else type="list-item-three-line@5" class="mt-2"></v-skeleton-loader>
         </v-card>
         <div class="commit-div">
-          <div style="display: flex; justify-content: center;">
+            
             <p> <el-button size="medium" class="commit-button" @click="cancelEdit">取消修改</el-button></p>
-           <p><el-button type="primary" size="medium" @click="openForm" class="commit-button" style="color: white">创建提交</el-button></p>
-          </div>
+           <p>  <el-button type="primary" size="medium" @click="openForm" class="commit-button" style="color: white">创建提交</el-button></p>
+          
+          <!-- <div style="display: flex; justify-content: center;">
+            <p> <el-button size="medium" class="commit-button" @click="cancelEdit">取消修改</el-button></p>
+           <p>  <el-button type="primary" size="medium" @click="openForm" class="commit-button" style="color: white">创建提交</el-button></p>
+          </div> -->
         </div>
         <el-dialog :title="commitForm.title" :visible.sync="commitVisible" width="40%">
           <el-form :model="commitForm" ref="form" label-width="140px">
@@ -712,33 +745,8 @@ export default {
           </el-form>
         </el-dialog>
       </v-col>
-      <!-- <v-col :cols="fileContentReady ? 7 : 9"> -->
+
       <v-col :cols="fileContentReady ? 7 : 9">
-        <!--  <h2>
-              <v-scroll-y-transition>
-                <span>
-                  {{
-                    !fileTreeReady ? '文件树加载中，稍侯...' :
-                        tree.length === 0 ? '请选择一个文件' :
-                            !fileContentReady ? '正在努力拉取文件' : ''
-                  }}
-                </span>
-              </v-scroll-y-transition>
-              <v-scroll-y-transition>
-                <a v-ripple
-                   v-if="fileContentReady"
-                   :style="'text-decoration: none; color: ' + getTopicColor(user.topic)"
-                   :href="'https://github.com/' + repo.user + '/' + repo.repo + '/blob/' + branchName + '/' + tree[0]['path']"
-                   target="_blank">
-                  {{
-                    !fileTreeReady ? '文件树加载中，稍侯...' :
-                        tree.length === 0 ? '请选择一个文件' :
-                            !fileContentReady ? '正在努力拉取文件' :
-                                repo.repo + tree[0]['path']
-                  }}
-                </a>
-              </v-scroll-y-transition>
-            </h2> -->
         <div class="tabs-menu" v-show="filePathList.length">
           <el-tabs v-model="nextFilePath" type="card" @tab-click="tabClick" @tab-remove="tabRemove">
             <el-tab-pane v-for="item in filePathList" :key="item.path" :label="item.name" :name="item.path"
@@ -756,10 +764,12 @@ export default {
             <el-button type="primary" style="color: white">
               更多功能<i class="el-icon-arrow-down el-icon--right"></i>
             </el-button>
+
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="a">查看文件贡献图</el-dropdown-item>
               <el-dropdown-item command="b">下载当前文件</el-dropdown-item>
               <el-dropdown-item command="c">新建文件</el-dropdown-item>
+              <el-dropdown-item command="d">多人协同编辑</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
           <el-dialog title="新建文件" :visible.sync="newFileData.visible" width="40%">
@@ -794,7 +804,7 @@ export default {
               <v-card-title :style="getLinearGradient(user.topic)"><strong>欢迎来到代码助手</strong></v-card-title>
               <v-divider></v-divider>
               <v-card-title>单元测试</v-card-title>
-              <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
+              <v-card-text>JiHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
               <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
@@ -805,7 +815,7 @@ export default {
               </v-card-actions>
               <v-divider></v-divider>
               <v-card-title>代码诊断</v-card-title>
-              <v-card-text>如果您阅读此代码比较困难，AutoHub也很乐意对您选中的代码，或是整个文件进行代码诊断</v-card-text>
+              <v-card-text>如果您阅读此代码比较困难，JiHub也很乐意对您选中的代码，或是整个文件进行代码诊断</v-card-text>
               <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
@@ -814,21 +824,6 @@ export default {
                 <v-spacer></v-spacer>
                 <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagWholeFile"><v-icon>mdi-code-braces</v-icon>对整个文件</v-btn>
               </v-card-actions>
-              <!-- <v-divider></v-divider>
-              <v-card-text>或者如果您想在GitHub操作，或查看源文件？</v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" link :href="'https://github.com/' + repo.user + '/' + repo.repo + '/blob/' + branchName + '/' + tree[0]['path']" target="_blank"><v-icon>mdi-github</v-icon>在GitHub浏览</v-btn>
-              </v-card-actions>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="() => downloadStrAsFile(selectedText, user.name + '\'s-clip' + '-' + this.tree[0]['name'])"><v-icon>mdi-download</v-icon>下载选中代码</v-btn>
-              </v-card-actions>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="() => downloadStrAsFile(fileContent, this.tree[0]['name'])"><v-icon>mdi-download</v-icon>下载整个文件</v-btn>
-              </v-card-actions> -->
-
               <v-row style="height: 5rem"></v-row>
             </v-card>
           </v-col>
@@ -867,14 +862,14 @@ export default {
 }
 
 .commit-div {
-  margin-top: 100px;
+  /* margin-top: 100px;
   height: 150px;
   display: flex;
-  justify-content: center;
+  justify-content: center; */
+  margin-top: 20px;
 }
 
 .commit-button {
-  margin-right: 30px;
-  margin-left: 30px;
+  width: 100%;
 }
 </style>
