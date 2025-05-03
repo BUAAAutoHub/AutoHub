@@ -14,7 +14,7 @@ def simple_llm_generate_3b(msg):
     messages.append({"role": "user", "content": msg})
 
     response = client.chat.completions.create(
-        model="llama3.2:3b",
+        model="llama3.2",
         messages=messages,
         temperature=0.5,
         max_tokens=1024

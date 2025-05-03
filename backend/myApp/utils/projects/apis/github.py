@@ -43,7 +43,8 @@ def add_labels(remote_path: str, issue_number: int, labels: Union[str, List[str]
         print(f"添加标签失败: {e.stderr}")
         return False
 
-def _get_item_content(self, item_type: str, item_number: int) -> Dict:
+def _get_item_content(token: str, remote_path: str, 
+                      item_type: str, item_number: int) -> Dict:
     """获取PR或Issue的内容"""
     if item_type == 'PR':
         command = [
@@ -52,8 +53,8 @@ def _get_item_content(self, item_type: str, item_number: int) -> Dict:
             "-H",
             "Accept: application/vnd.github+json",
             "-H",
-            f"Authorization: token {self.token}",
-            f"/repos/{self.repo.remote_path}/pulls/{item_number}",
+            f"Authorization: token {token}",
+            f"/repos/{remote_path}/pulls/{item_number}",
         ]
     else:  # ISSUE
         command = [
@@ -62,8 +63,8 @@ def _get_item_content(self, item_type: str, item_number: int) -> Dict:
             "-H",
             "Accept: application/vnd.github+json",
             "-H",
-            f"Authorization: token {self.token}",
-            f"/repos/{self.repo.remote_path}/issues/{item_number}",
+            f"Authorization: token {token}",
+            f"/repos/{remote_path}/issues/{item_number}",
         ]
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
@@ -78,42 +79,34 @@ def _get_item_content(self, item_type: str, item_number: int) -> Dict:
         "updated_at": data.get("updated_at", ""),
     }
 
-def _add_comment(self, item_type: str, item_number: int, message: str):
+def _add_comment(token: str,remote_path: str,
+                item_type: str, item_number: int, message: str):
     """添加评论"""
     if item_type == 'PR':
-        endpoint = f"/repos/{self.repo.remote_path}/issues/{item_number}/comments"
+        endpoint = f"/repos/{remote_path}/issues/{item_number}/comments"
     else:  # ISSUE
-        endpoint = f"/repos/{self.repo.remote_path}/issues/{item_number}/comments"
+        endpoint = f"/repos/{remote_path}/issues/{item_number}/comments"
     command = [
         "gh",
         "api",
         "-H",
         "Accept: application/vnd.github+json",
         "-H",
-        f"Authorization: token {self.token}",
+        f"Authorization: token {token}",
         endpoint,
         "-f",
         f"body={message}",
     ]
     subprocess.run(command, capture_output=True, text=True)
 
-def _add_labels(self, item_type: str, item_number: int, labels: List[str]):
+def _add_labels(token: str, remote_path: str, 
+                item_type: str, item_number: int, labels: List[str]):
     """添加标签"""
-    if not labels:
-        return
-    if item_type == 'PR':
-        endpoint = f"/repos/{self.repo.remote_path}/issues/{item_number}/labels"
-    else:  # ISSUE
-        endpoint = f"/repos/{self.repo.remote_path}/issues/{item_number}/labels"
-    command = [
-        "gh",
-        "api",
-        "-H",
-        "Accept: application/vnd.github+json",
-        "-H",
-        f"Authorization: token {self.token}",
-        endpoint,
-        "-f",
-        f"labels={','.join(labels)}",
-    ]
-    subprocess.run(command, capture_output=True, text=True)
+    add_labels(remote_path, item_number, labels, token)
+
+if __name__ == '__main__':
+    token = "123"
+    remote_path = "BUAAAutoHub/AutoHub"
+    labels = ["bug3"]
+    issue_number = 4
+    add_labels(remote_path, issue_number, labels, token)

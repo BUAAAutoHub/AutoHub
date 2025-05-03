@@ -269,7 +269,7 @@ class AutoReviewBot:
         prs_to_review = _getPrs(self.repo_id, self.token)
         issues_to_review = _getIssues(self.repo_id, self.token)
         if not isinstance(prs_to_review, list) or not isinstance(issues_to_review, list):
-            return -1
+            return -1, data
         
         pr_set = set()
         # 处理PR
