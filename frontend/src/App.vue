@@ -176,6 +176,14 @@
                           <v-list-item-title>新建PR</v-list-item-title>
                         </v-list-item-content>
                       </v-list-item>
+                      <v-list-item link :to="'/newIssue'" style="padding-left: 30px">
+                        <v-list-item-avatar>
+                          <v-icon :color="getDarkColor(user.topic)">mdi-check-circle-outline</v-icon>
+                        </v-list-item-avatar>
+                        <v-list-item-content>
+                          <v-list-item-title>新建Issue</v-list-item-title>
+                        </v-list-item-content>
+                      </v-list-item>
                     </div>
                   </v-expand-transition>
                 </v-list-item-group>

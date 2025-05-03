@@ -115,6 +115,11 @@ const router = new VueRouter({
       component: () => import('../views/user/develop/PullRequest.vue'),
     },
     {
+        path: '/newIssue',
+        name: '新建Issue',
+        component: () => import('../views/user/develop/Issue.vue'),
+      },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('../views/user/profile.vue')
