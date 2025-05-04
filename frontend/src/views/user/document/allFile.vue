@@ -60,6 +60,8 @@
       <v-icon @click="cancelCollect(item)" v-else>mdi-star</v-icon>
       <v-icon @click="editStart(item)">mdi-pencil-outline</v-icon>
       <v-icon @click="handleDelete(item)">mdi-delete-outline</v-icon>
+      <!-- 新增分享按钮 -->
+        <v-icon @click="showShareDialog(item)">mdi-share-variant</v-icon>
     </template>
     <template v-slot:[`item.limit`]="{ item }">
       <v-icon v-if="item.limit !== 'only read'">mdi-check-bold</v-icon>
@@ -322,6 +324,36 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- 在模板末尾添加分享对话框 -->
+    <v-dialog v-model="shareDialog" max-width="600">
+      <v-card>
+        <v-card-title class="headline">分享文档</v-card-title>
+        <v-card-text>
+          <v-form>
+            <v-text-field
+              v-model="customLinkName"
+              label="链接名称"
+              placeholder="给我的分享链接起个名字"
+              maxlength="20"
+              counter
+            ></v-text-field>
+            
+            <v-text-field
+              v-model="generatedLink"
+              label="分享链接"
+              readonly
+              append-icon="mdi-content-copy"
+              @click:append="copyLink"
+            ></v-text-field>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" text @click="shareDialog = false">关闭</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -341,6 +373,12 @@ export default {
   },
   data() {
     return {
+      // 新增内容
+      shareDialog: false,
+      generatedLink: '',
+      customLinkName: '',
+      currentDoc: null,
+      // 新增内容
       isCollect: false,
       doc: '',
       textList: {},
@@ -826,6 +864,58 @@ export default {
     handleEditorImgDel() {
       console.log('handleEditorImgDel');    //我这里没做什么操作，后续我要写上接口，从七牛云CDN删除相应的图片
     },
+    // 显示分享对话框
+      showShareDialog(item) {
+        this.currentDoc = item;
+        this.generateShareLink();
+        this.shareDialog = true;
+      },
+  
+      // 生成分享链接
+      generateShareLink() {
+        if (!this.selectedProj || !this.currentDoc) {
+          this.$message.error('生成链接失败');
+          return;
+        }
+        
+        // 生成默认链接名称
+        const defaultName = `${this.currentDoc.name}-${this.selectedProj.projectName}`;
+        this.customLinkName = this.customLinkName || defaultName;
+        
+        // 生成友好URL
+        const slug = this.slugify(this.customLinkName);
+        this.generatedLink = `${window.location.origin}/#/share/docs/${this.selectedProj.projectId}/${this.currentDoc.id}/${slug}`;
+      },
+  
+      // 复制链接
+      async copyLink() {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(this.generatedLink);
+          } else {
+            const input = document.createElement('input');
+            input.value = this.generatedLink;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+          }
+          this.$message.success('链接已复制到剪贴板');
+        } catch (err) {
+          console.error('复制失败:', err);
+          this.$message.error('复制失败，请手动复制链接');
+        }
+      },
+  
+      // 生成URL友好格式
+      slugify(text) {
+        return text.toString().toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w-]+/g, '')
+          .replace(/--+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+      },
     getTopicColor: topicSetting.getColor,
     getDarkColor: topicSetting.getDarkColor,
     getLinearGradient: topicSetting.getLinearGradient,
@@ -853,3 +943,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+  .share-link-input .v-input__slot {
+    background-color: #f5f5f5;
+  }
+</style>

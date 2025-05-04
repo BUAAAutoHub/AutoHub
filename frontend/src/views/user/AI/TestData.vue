@@ -135,7 +135,7 @@ export default {
     startTestData() {
       console.log(this.code)
       this.resultBusy = true;
-      axios.post("/api/ai/UnitTest", {code: this.code}) // TODO
+      axios.post("/api/ai/unitTest", {code: this.code}) // TODO
           .then((response) => {
             console.log(response)
             if (response.data.errcode === 1) {
@@ -144,7 +144,7 @@ export default {
                 message: "未知错误"
               });
             } else {
-              this.result = response.data.data
+              this.result = response.data.reply
               this.cmViewer.setValue(this.result)
             }
           })

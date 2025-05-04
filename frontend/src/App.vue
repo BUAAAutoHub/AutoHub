@@ -438,6 +438,9 @@
       <v-main>
         <router-view v-if="showRouterView" />
       </v-main>
+      <!-- 新增悬浮窗口 -->
+      <!-- 保证路由切换时重置组件状态 -->
+      <FloatingChat v-if="showFloatingChat" />
   
   
       <el-dialog title="提醒列表" width="30%" :before-close="handleClose">
@@ -448,6 +451,7 @@
         </span>
       </el-dialog>
   
+      <AIChatAssistant :current-project-id="proj?.projectId || -1" />
     </v-app>
   </template>
   
@@ -463,6 +467,9 @@
   import AllFile from "@/views/user/document/allFile.vue"
   import getIdenticon from "@/utils/identicon";
   import topicSetting from "@/utils/topic-setting";
+  import FloatingChat from '@/components/FloatingChat.vue' // 新增悬浮聊天组件
+  import AIChatAssistant from '@/components/AIChatAssistant.vue'; // 新增AI聊天助手组件
+// import allTask from "@/views/user/projectPlanning/allTask"
   // import allTask from "@/views/user/projectPlanning/allTask"
   console.log("entered login page");
   let user = Cookies.get("user");
@@ -581,6 +588,8 @@
     components: {
       AllTask,
       AllFile,
+      FloatingChat, // 新增聊天悬浮组件
+      AIChatAssistant,
     },
     watch: {
       selectedProj(n, o) {
@@ -648,6 +657,12 @@
         //setFrom: this.setFrom,
         // reload:this.reload
       };
+    },
+    computed: {
+      // 新增悬浮聊天窗口
+      showFloatingChat() {
+        return this.$route.matched.some(route => route.meta.floatingChat)
+      }
     },
     methods: {
       getIdenticon,
@@ -1071,4 +1086,29 @@
     /* 添加子项标题的样式 */
     font-weight: bold;
   }
+  .router-transition-enter-active {
+  animation: slide-up 0.3s;
+}
+
+@keyframes slide-up {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-assistant {
+  z-index: 10001; /* 高于其他悬浮元素 */
+}
+
+/* 原有聊天图标调整 */
+.chat-trigger {
+  z-index: 10000;
+  bottom: 30px;
+  right: 30px;
+}
   </style>
