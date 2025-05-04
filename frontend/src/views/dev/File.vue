@@ -804,7 +804,7 @@ export default {
               <v-card-title :style="getLinearGradient(user.topic)"><strong>欢迎来到代码助手</strong></v-card-title>
               <v-divider></v-divider>
               <v-card-title>单元测试</v-card-title>
-              <v-card-text>JiHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
+              <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
               <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
@@ -815,7 +815,7 @@ export default {
               </v-card-actions>
               <v-divider></v-divider>
               <v-card-title>代码诊断</v-card-title>
-              <v-card-text>如果您阅读此代码比较困难，JiHub也很乐意对您选中的代码，或是整个文件进行代码诊断</v-card-text>
+              <v-card-text>如果您阅读此代码比较困难，AutoHub也很乐意对您选中的代码，或是整个文件进行代码诊断</v-card-text>
               <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
