@@ -686,10 +686,66 @@ export default {
                                 </div>
                             </div>
                             <v-spacer></v-spacer>
+                            <!-- 新增生成摘要按钮 -->
+                            <v-btn 
+                                icon 
+                                @click="generateSummary"
+                                :loading="summaryLoading"
+                                color="primary"
+                                class="mr-2"
+                            >
+                                <v-icon>mdi-text-box-search</v-icon>
+                                <template v-slot:loader>
+                                    <v-progress-circular indeterminate size="24"></v-progress-circular>
+                                </template>
+                            </v-btn>
                             <v-btn icon @click="searchDialog = true">
                                 <v-icon>mdi-magnify</v-icon>
                             </v-btn>
                         </v-card-title>
+
+                        <!-- 新增摘要对话框 -->
+                        <v-dialog v-model="summaryDialog" max-width="800">
+                            <v-card>
+                                <v-card-title class="headline">
+                                    讨论摘要
+                                    <v-spacer></v-spacer>
+                                    <v-btn 
+                                        icon
+                                        @click="summaryDialog = false"
+                                    >
+                                        <v-icon>mdi-close</v-icon>
+                                    </v-btn>
+                                </v-card-title>
+                                
+                                <v-divider></v-divider>
+                                
+                                <v-card-text class="pa-4">
+                                    <div v-if="summaryContent" class="summary-content">
+                                        <pre style="white-space: pre-wrap;">{{ summaryContent }}</pre>
+                                    </div>
+                                    
+                                    <v-alert
+                                        v-else
+                                        type="info"
+                                        outlined
+                                        class="mt-4"
+                                    >
+                                        正在生成讨论摘要，请稍候...
+                                    </v-alert>
+                                </v-card-text>
+
+                                <v-card-actions>
+                                    <v-spacer></v-spacer>
+                                    <v-btn 
+                                        color="primary"
+                                        @click="summaryDialog = false"
+                                    >
+                                        关闭
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-dialog>
 
                         <!-- 成员列表 -->
                         <v-card-text class="py-2">
