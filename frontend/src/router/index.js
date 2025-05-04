@@ -188,6 +188,11 @@ const router = new VueRouter({
       component: () => import('../views/chat/Chat.vue')
     },
     {
+        path: '/user/ai/analysis',
+        name: 'analysis',
+        component: () => import('../views/user/AI/Analysis.vue')
+      },
+    {
       path: '/user/ai/diagnosis',
       name: 'diagnosis',
       component: () => import('../views/user/AI/Diagnosis.vue')

@@ -122,6 +122,7 @@ export default {
       return this.code !== ''
     },
     getFromCookie() {
+        console.log('testgetFromCookie', Cookies.get('diag'))
       if (Cookies.get('diag') !== undefined) {
         this.code = Cookies.get('diag')
         this.cmEditor.setValue(this.code)

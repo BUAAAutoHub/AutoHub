@@ -29,7 +29,6 @@ import 'codemirror/mode/clike/clike.js' // Java/C/C++
 // 自动补全插件
 import 'codemirror/addon/hint/show-hint.js'
 import 'codemirror/addon/hint/show-hint.css'
-//import 'codemirror/addon/hint/javascript-hint.js'
 
   
   export default {
@@ -90,6 +89,9 @@ import 'codemirror/addon/hint/show-hint.css'
         // 获取编辑器内容
         getEditorContent() {
             return this.editor.getValue();
+        },
+        getEditorSelection() {
+            return this.editor.getSelection();
         },
         initEditor() {
             console.log('Initializing editor... host:', this.isHost)

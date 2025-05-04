@@ -179,7 +179,7 @@
                                 <template slot-scope="scope">
                                     <el-button
                                     size="mini"
-                                    icon="el-icon-edit"
+                                    icon="el-icon-info"
                                     type="primary"
                                     plain
                                     @click="editRule(scope.$index)"
@@ -217,7 +217,7 @@
                                 <template slot-scope="scope">
                                     <el-button
                                     size="mini"
-                                    icon="el-icon-edit"
+                                    icon="el-icon-info"
                                     type="primary"
                                     plain
                                     @click="editLabel(scope.$index)"
@@ -227,7 +227,7 @@
                                     icon="el-icon-delete"
                                     type="danger"
                                     plain
-                                    @click="editLabel(scope.$index)"
+                                    @click="deleteLabel(scope.$index)"
                                     ></el-button>
                                 </template>
                             </el-table-column>
@@ -268,7 +268,7 @@
                     </el-card>
 
                     <!-- 添加/编辑 Rule 弹窗 -->
-                    <el-dialog :title="editIndex === null ? '新增规则' : '编辑规则'" :visible.sync="ruleModalVisible">
+                    <el-dialog :title="editIndex === null ? '新增规则' : '规则详情'" :visible.sync="ruleModalVisible">
                         <el-form :model="currentRule" label-width="80px">
                             <el-form-item label="标题">
                                 <el-input v-model="currentRule.name"></el-input>
@@ -292,14 +292,14 @@
                                 <el-input type="textarea" v-model="currentRule.content.prompt" rows="3"></el-input>
                             </el-form-item>
                         </el-form>
-                        <div slot="footer">
+                        <div slot="footer" v-if="editIndex == null">
                             <el-button @click="ruleModalVisible = false" class="assistant-button">取消</el-button>
                             <el-button type="primary" @click="saveRule" class="assistant-button">保存</el-button>
                         </div>
                     </el-dialog>
                 
                     <!-- 添加/编辑 Label 弹窗 -->
-                    <el-dialog :title="editIndex === null ? '新增标签' : '编辑标签'" :visible.sync="labelModalVisible">
+                    <el-dialog :title="editIndex === null ? '新增标签' : '标签详情'" :visible.sync="labelModalVisible">
                         <el-form :model="currentLabel" label-width="80px">
                             <el-form-item label="Label">
                                 <el-input v-model="currentLabel.name"></el-input>
@@ -311,7 +311,7 @@
                                 <el-color-picker v-model="currentLabel.color"></el-color-picker>
                             </el-form-item>
                         </el-form>
-                        <div slot="footer">
+                        <div slot="footer" v-if="editIndex == null">
                             <el-button @click="labelModalVisible = false" class="assistant-button">取消</el-button>
                             <el-button type="primary" @click="saveLabel" class="assistant-button">保存</el-button>
                         </div>
@@ -403,12 +403,12 @@ import util from "@/views/util";
                     labelDescription: this.currentLabel.description
                 });
                 if(response.data.errcode == 0) {
-                    console.log("新增标签成功");
+                    console.log("新增/编辑标签成功");
                 } else {
-                    this.$message.error("新增标签失败"+response.data.errcode+ response.data.massage)
+                    this.$message.error("新增/编辑标签失败"+response.data.errcode+ response.data.massage)
                 }
             } catch (err) {
-                this.$message.error(err+" 新增标签失败")
+                this.$message.error(err+" 新增/编辑标签失败")
             } finally {
                 if (this.editIndex === null) {
                     this.labels.push({ ...this.currentLabel })
@@ -418,8 +418,21 @@ import util from "@/views/util";
                 this.labelModalVisible = false
             }
         },
-        deleteLabel(index) {
-            this.labels.splice(index, 1)
+        async deleteLabel(index) {
+            try {
+                const response = await axios.post('/api/bot/removelabel', {
+                    repoId: this.$route.params.repoid,
+                    labelName: this.labels[index].name
+                });
+                if(response.data.errcode == 0) {
+                    this.labels.splice(index, 1)
+                    console.log("删除标签成功");
+                } else {
+                    this.$message.error("删除标签失败"+response.data.errcode+ response.data.massage)
+                }
+            } catch (err) {
+                this.$message.error(err+" 删除标签失败")
+            } 
         },
         addRule() {
             this.editIndex = null
@@ -466,8 +479,22 @@ import util from "@/views/util";
                 this.ruleModalVisible = false
             }   
         },
-        deleteRule(index) {
-            this.rules.splice(index, 1)
+        async deleteRule(index) {
+            try {
+                const response = await axios.post('/api/bot/removerule', {
+                    repoId: this.$route.params.repoid,
+                    ruleName: this.rules[index].name,
+                    ruleType: this.rules[index].type
+                });
+                if(response.data.errcode == 0) {
+                    this.rules.splice(index, 1)
+                    console.log("删除规则成功");
+                } else {
+                    this.$message.error("删除规则失败"+response.data.errcode+ response.data.massage)
+                }
+            } catch (err) {
+                this.$message.error(err+" 删除规则失败")
+            }
         },
         async checkProject() {
             this.checking = true

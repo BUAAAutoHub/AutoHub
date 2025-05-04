@@ -1,4 +1,5 @@
 <template>
+
     <!--style="display: flex; height: 100vh;"-->
     <div class="overflow-y-hidden collab-container font-size-14" style="display: flex;">
       <div class="user-list big-card-shadow">
@@ -61,30 +62,47 @@
         <div class="collab-header padding-10">
             <p class="margin-0">代码助手</p>
         </div>
-            <v-card elevation="0" min-height="calc(100vh - 300px)" class="overflow-y-hidden overflow-x-hidden no-radius no-border code-assistant-content">
-              <v-divider></v-divider>
-              <v-card-title>单元测试</v-card-title>
-              <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
-              </v-card-actions>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined @click="unitTestWholeFile"><v-icon>mdi-check</v-icon>对整个文件</v-btn>
-              </v-card-actions>
-              <v-divider></v-divider>
-              <v-card-title>代码诊断</v-card-title>
-              <v-card-text>如果您阅读此代码比较困难，AutoHub也很乐意对您选中的代码，或是整个文件进行代码诊断</v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
-              </v-card-actions>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined @click="diagWholeFile"><v-icon>mdi-code-braces</v-icon>对整个文件</v-btn>
-              </v-card-actions>
-              <v-row style="height: 5rem"></v-row>
+            <v-card elevation="0" class="overflow-y-hidden overflow-x-hidden no-radius no-border code-assistant-content">
+              
+                <v-divider></v-divider>
+
+                <v-card-title>人机协同</v-card-title>
+                <v-card-text>AutoHub也很乐意对您选中的代码，或是整个文件进行代码优化</v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
+                </v-card-actions>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined @click="diagWholeFile"><v-icon>mdi-code-braces</v-icon>对整个文件</v-btn>
+                </v-card-actions>
+
+                <v-divider></v-divider>
+
+                <v-card-title>静态分析</v-card-title>
+                <v-card-text>AutoHub帮助您管理源代码的质量，快速定位Bug、漏洞以及不优雅的地方</v-card-text>
+                <!-- <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined @click="analySelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
+                </v-card-actions> -->
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined @click="analyWholeFile"><v-icon>mdi-magnify-scan</v-icon>对整个文件</v-btn>
+                </v-card-actions>
+
+                <v-divider></v-divider>
+
+                <v-card-title>单元测试</v-card-title>
+                <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
+                </v-card-actions>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined @click="unitTestWholeFile"><v-icon>mdi-check</v-icon>对整个文件</v-btn>
+                </v-card-actions>
+              <!-- <v-row style="height: 5rem"></v-row> -->
             </v-card>
       </div>
     </div>
@@ -92,9 +110,10 @@
   
   <script>
   import YjsEditor from './YjsEditor.vue'
+  import Cookies from 'js-cookie'
 
   export default {
-    components: { YjsEditor},
+    components: { YjsEditor },
     data() {
       return {
         users: {},
@@ -175,77 +194,121 @@
                 document.body.appendChild(textarea);
                 textarea.select();
                 try {
-                document.execCommand('copy');
-                alert('链接已复制！（兼容模式）' + this.inviteUrl);
+                    document.execCommand('copy');
+                    alert('链接已复制！（兼容模式）' + this.inviteUrl);
                 } catch (err) {
-                alert('复制失败，请手动复制链接：' + this.inviteUrl);
+                    alert('复制失败，请手动复制链接：' + this.inviteUrl);
                 }
                 document.body.removeChild(textarea);
             }
         },
 
+        analyWholeFile() {
+            const fileContent = this.$refs.yjsEditor.getEditorContent();  // 调用 YjsEditor 组件的 getEditorContent 方法
+            if (fileContent.length <= 10) {
+                this.$message({
+                    type: 'error',
+                    message: '喵呜~ 代码太短了啦 (ฅ´ω`ฅ) 再多写一点点好不好'
+                })
+                return
+            }
+            //如果文件长度大于Cookie最长长度，就不诊断了
+            // if (fileContent.length > 4096) {
+            //     this.$message({
+            //         type: 'error',
+            //         message: '文件太长了，AI会罢工的！'
+            //     })
+            //     return
+            // }
+            // Cookies.set('diag', fileContent)
+            // console.log('cookies content:', Cookies.get('diag'))
+            localStorage.setItem('diag', fileContent)
+            console.log('localStorage content:', localStorage.getItem('diag'))
+            window.open('/user/ai/analysis', '_blank')
+        },
+
         diagSelected() {
-      //如果文件长度大于Cookie最长长度，就不诊断了
-      if (this.selectedText.length > 4096) {
-        this.$message({
-          type: 'error',
-          message: '文件太长了，AI会罢工的！'
-        })
-        return
-      }
-      if (this.selectedText.length <= 10) {
-        this.$message({
-          type: 'error',
-          message: '代码这么短，怎么诊断嘛'
-        })
-        return
-      }
-      Cookies.set('diag', this.selectedText)
-      window.open('/user/ai/diagnosis', '_blank')
-    },
-    diagWholeFile() {
-      //如果文件长度大于Cookie最长长度，就不诊断了
-      if (this.fileContent.length > 4096) {
-        this.$message({
-          type: 'error',
-          message: '文件太长了，AI会罢工的！'
-        })
-        return
-      }
-      Cookies.set('diag', this.fileContent)
-      window.open('/user/ai/diagnosis', '_blank')
-    },
-    unitTestSelected() {
-      //如果文件长度大于Cookie最长长度，就不诊断了
-      if (this.selectedText.length > 4096) {
-        this.$message({
-          type: 'error',
-          message: '文件太长了，AI会罢工的！'
-        })
-        return
-      }
-      if (this.selectedText.length <= 10) {
-        this.$message({
-          type: 'error',
-          message: '代码这么短，怎么生成嘛'
-        })
-        return
-      }
-      Cookies.set('diag', this.selectedText)
-      window.open('/user/ai/testdata', '_blank')
-    },
-    unitTestWholeFile() {
-      //如果文件长度大于Cookie最长长度，就不诊断了
-      if (this.fileContent.length > 4096) {
-        this.$message({
-          type: 'error',
-          message: '文件太长了，AI会罢工的！'
-        })
-        return
-      }
-      Cookies.set('diag', this.fileContent)
-      window.open('/user/ai/testdata', '_blank')
-    },
+            const selectedText = this.$refs.yjsEditor.getEditorSelection();  
+            console.log(selectedText.length, 'diag选中的文本:', selectedText);
+
+            //如果文件长度大于Cookie最长长度，就不诊断了
+            if (selectedText.length > 4096) {
+                this.$message({
+                type: 'error',
+                message: '文件太长了，AI会罢工的！'
+                })
+                return
+            }
+            if (selectedText.length <= 10) {
+                this.$message({
+                type: 'error',
+                message: '喵呜~ 代码太短了啦 (ฅ´ω`ฅ) 再多写一点好不好'
+                })
+                return
+            }
+            Cookies.set('diag', selectedText)
+            window.open('/user/ai/diagnosis', '_blank')
+        },
+        diagWholeFile() {
+            const fileContent = this.$refs.yjsEditor.getEditorContent();  // 调用 YjsEditor 组件的 getEditorContent 方法
+            //如果文件长度大于Cookie最长长度，就不诊断了
+            if (fileContent.length > 4096) {
+                this.$message({
+                    type: 'error',
+                    message: '文件太长了，AI会罢工的！'
+                })
+                return
+            }
+            Cookies.set('diag', fileContent)
+            window.open('/user/ai/diagnosis', '_blank')
+        },
+        unitTestSelected() {
+            const selectedText = this.$refs.yjsEditor.getEditorSelection();  
+            console.log('选中的文本:', selectedText);
+
+            //如果文件长度大于Cookie最长长度，就不诊断了
+            if (selectedText.length > 4096) {
+                this.$message({
+                type: 'error',
+                message: '文件太长了，AI会罢工的！'
+                })
+                return
+            }
+            if (selectedText.length <= 10) {
+                this.$message({
+                    type: 'error',
+                    message: '代码这么短，怎么生成嘛'
+                })
+                return
+            }
+            Cookies.set('diag', selectedText)
+            console.log('cookies content:', Cookies.get('diag'))
+            window.open('/user/ai/testdata', '_blank')
+        },
+        unitTestWholeFile() {
+            const fileContent = this.$refs.yjsEditor.getEditorContent();  // 调用 YjsEditor 组件的 getEditorContent 方法
+            console.log('文件内容:', fileContent);
+            //如果文件长度大于Cookie最长长度，就不诊断了
+            if (fileContent.length > 4096) {
+                this.$message({
+                    type: 'error',
+                    message: '文件太长了，AI会罢工的！'
+                })
+                return
+            }
+            // Cookies.set('diag', fileContent)
+            // console.log('testgetFromCookie1', Cookies.get('diag'))
+            // window.open('/user/ai/testdata', '_blank')
+            Cookies.set('diag', fileContent, { path: '/' });
+            console.log('Cookie 写入中...');
+
+            setTimeout(() => {
+                console.log('testgetFromCookie1写入', Cookies.get('diag'))
+                console.log('Cookie 写入后尝试打开窗口...');
+                window.open('/user/ai/testdata', '_blank');
+            }, 200);  // 延迟 200 毫秒左右即可
+
+        },
 
     },
     created() {
@@ -297,6 +360,11 @@
   </script>
 
 <style scoped>
+
+.v-card__title {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
 
 .no-radius {
     border-radius: 0 !important;
@@ -437,7 +505,7 @@
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    /* height: 100%; */
 }
 
 .code-assistant-content {
