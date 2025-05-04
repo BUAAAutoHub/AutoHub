@@ -42,6 +42,9 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: path => path
       }
+    },
+    hmr: {
+        overlay: false
     }
   },
   preview: {
@@ -49,3 +52,4 @@ export default defineConfig({
     port: 8000,
   }
 })
+  

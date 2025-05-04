@@ -26,3 +26,4 @@ dist-ssr
 *.sln
 *.sw?
 /public/.well-known/pki-validation/fileauth.txt
+node_modules

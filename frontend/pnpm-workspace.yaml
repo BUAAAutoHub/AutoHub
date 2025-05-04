@@ -4,5 +4,4 @@ onlyBuiltDependencies:
   - es5-ext
   - esbuild
   - node-sass
-  - v-code-diff
   - vue-demi

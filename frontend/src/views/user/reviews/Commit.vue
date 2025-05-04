@@ -8,14 +8,11 @@ import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-tomorrow.css"; // import syntax highlighting styles
 import parseDiff from 'parse-diff'
-import {CodeDiff} from 'v-code-diff'
 // import parseDiff from 'parse-diff'
 import {defineComponent} from 'vue'
-// import {CodeDiff} from 'v-code-diff'
 export default {
   components: {
-    PrismEditor,
-    CodeDiff
+    PrismEditor
   },
   inject: {
     user: {default: null},

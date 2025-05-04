@@ -155,6 +155,7 @@ urlpatterns = [
     path("api/chat/private", userChat.get_user_private_groups),
     path("api/chat/getRoomMessages", userChat.get_room_content),
     path("api/chat/createRoom", userChat.create_public_group),
+    path("api/chat/deleteRoom", userChat.delete_public_group),
     path("api/chat/createPrivate", userChat.create_private_group),
     path("api/chat/addPerson", userChat.add_user_to_group),
     path("api/chat/deletePerson", userChat.delete_user_from_group),

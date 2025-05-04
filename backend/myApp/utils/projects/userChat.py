@@ -3,7 +3,8 @@ import re
 
 from djangoProject.settings import response_json
 from myApp.models import Group, User, Message, UserGroup, Project
-
+from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 SUCCESS = 0
 
@@ -134,6 +135,51 @@ def create_public_group(request):
         },
     )
 
+
+
+def delete_public_group(request):
+    """
+    Date        :   2025/5/04
+    Author      :   yanfan
+    Description :   删除公共讨论组
+    """
+    kwargs = json.loads(request.body)
+    room_id = int(kwargs.get("roomId", 0))
+
+    try:
+        group = Group.objects.get(id=room_id)
+    except ObjectDoesNotExist:
+        return response_json(
+            errcode=1,
+            message="讨论组不存在"
+        )
+
+    if group.type != "PUB":
+        return response_json(
+            errcode=1,
+            message="只允许删除公共讨论组"
+        )
+
+    with transaction.atomic():
+        # 删除消息
+        qs_msg = Message.objects.filter(group_id=room_id)
+        deleted_messages = qs_msg.count()
+        qs_msg.delete()
+
+        # 删除用户‑讨论组关联
+        UserGroup.objects.filter(group=group).delete()
+
+        # 删除讨论组
+        group.delete()
+
+    return response_json(
+        errcode=SUCCESS,
+        message="删除成功",
+        data={
+            "deletedRoomId": room_id,
+            "deletedMessages": deleted_messages
+        }
+    )
 
 def create_private_group(request):
     """

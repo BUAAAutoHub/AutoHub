@@ -198,6 +198,7 @@ class UserCreateDoc(View):
         for item in accessUserId:
             accessUser = User.objects.get(id=item)
             UserAccessDoc(user_id=accessUser, doc_id=doc).save()
+        
         return response
 
     def post(self, request):

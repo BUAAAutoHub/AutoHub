@@ -101,6 +101,9 @@ class BotRuleManager:
         try:
             result = json.loads(response)
         except json.JSONDecodeError:
+            return {
+                "is_valid": False
+            }
             print('返回格式错误！')
         
         return {
