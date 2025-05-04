@@ -1137,4 +1137,24 @@ export default {
     text-decoration: none;
   }
 }
+
+/* 新增生成讨论摘要样式 */
+.summary-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 16px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    line-height: 1.6;
+}
+
+.summary-content pre {
+    font-family: 'Microsoft YaHei', sans-serif;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.v-card__actions button {
+    min-width: 120px;
+}
 </style>
