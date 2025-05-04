@@ -30,7 +30,8 @@ const router = new VueRouter({
     },
     {
       path:'/allTask',
-      component: () => import('../views/user/projectPlanning/allTask.vue')
+      component: () => import('../views/user/projectPlanning/allTask.vue'),
+      meta: { floatingChat: true }
     },
     {
       path: '/picture',
@@ -46,7 +47,8 @@ const router = new VueRouter({
     },
     {
       path: '/allProject',
-      component: () => import('../views/user/projectPlanning/allProject.vue')
+      component: () => import('../views/user/projectPlanning/allProject.vue'),
+      meta: { floatingChat: true }
     },
     {
       path:'/plan/:projid',
@@ -77,7 +79,8 @@ const router = new VueRouter({
     {
       path: '/dev/bot/:userid/:projid/:repoid',
       name: 'bot',
-      component: () => import('../views/dev/Bot/Bot.vue')
+      component: () => import('../views/dev/Bot/Bot.vue'),
+      meta: { floatingChat: true }
     },
     {
       path: '/room',
@@ -93,26 +96,31 @@ const router = new VueRouter({
       path: '/commitReview',
       name: 'commit审查',
       component: () => import('../views/user/reviews/commitReview.vue'),
+      meta: { floatingChat: true }
     },
     {
       path: '/commitReview/:projid/:repoid/:branchname/:commitsha+',
       name: 'commit详情',
-      component: () => import('../views/user/reviews/Commit.vue')
+      component: () => import('../views/user/reviews/Commit.vue'),
+      meta: { floatingChat: true }
     },
     {
       path: '/prReview',
       name: 'pr审查',
       component: () => import('../views/user/reviews/prReview.vue'),
+      meta: { floatingChat: true }
     },
     {
       path: '/prReview/:projid/:repoid/:prid+',
       name: 'pr详情',
-      component: () => import('../views/user/reviews/PR.vue')
+      component: () => import('../views/user/reviews/PR.vue'),
+      meta: { floatingChat: true }
     },
     {
       path: '/newPR',
       name: '新建PR',
       component: () => import('../views/user/develop/PullRequest.vue'),
+      meta: { floatingChat: true }
     },
     {
         path: '/newIssue',
@@ -193,6 +201,29 @@ const router = new VueRouter({
       name: 'database',
       component: () => import('../views/dev/Database.vue')
     },
+    {
+      path: '/share/pr/:userId/:projectId/:slug',
+      component: () => import('../views/user/develop/PullRequest.vue'),
+      props: (route) => ({
+          userId: parseInt(route.params.userId),
+          projectId: parseInt(route.params.projectId),
+          slug: route.params.slug
+      })
+      },
+      {
+      path: '/share/tasks/:projectId/:slug',  
+      component: () => import('../views/user/projectPlanning/allTask.vue'),
+      props: true
+      },
+      {
+      path: '/share/docs/:projectId/:docId/:slug',
+      component: () => import('../views/user/document/allFile.vue'),
+      props: (route) => ({
+          projectId: parseInt(route.params.projectId),
+          docId: parseInt(route.params.docId),
+          slug: route.params.slug
+      })
+  },
   ]
 })
 

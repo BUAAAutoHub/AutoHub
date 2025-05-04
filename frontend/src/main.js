@@ -22,6 +22,9 @@ import '@kangc/v-md-editor/lib/style/base-editor.css';
 import vuepressTheme from '@kangc/v-md-editor/lib/theme/vuepress.js';
 import Prism from 'prismjs';
 
+import FloatingChat from '@/components/FloatingChat.vue'
+Vue.component('FloatingChat', FloatingChat)
+
 VueMarkdownEditor.use(vuepressTheme);
 VueMarkdownEditor.use(createKatexPlugin());
 Vue.use(VueMarkdownEditor);

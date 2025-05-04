@@ -43,6 +43,12 @@
       <v-btn depressed :color="getTopicColor(user.topic)" style="position:absolute;top:1%;right:5%;height:4%;width:10%;"
         @click="setupFather = true">创建新的冲刺
       </v-btn>
+      <v-btn depressed :color="getTopicColor(user.topic)" 
+                style="position:absolute;top:1%;right:48%;height:4%;width:12%;"
+                @click="generateShareLink">
+        <v-icon left>mdi-share</v-icon>
+        生成分享链接
+        </v-btn>
       <div style="display: flex; flex-direction: column;">
         <!-- <div style="margin-bottom: 40px;">
             <v-gantt-chart :startTime="startTime" :endTime="endTime" :datas="datas">
@@ -258,7 +264,42 @@
 
 
 
-
+  
+  <!-- 分享链接 -->
+    <el-dialog title="分享任务视图" :visible.sync="shareDialog" width="40%">
+        <el-form>
+            <el-form-item label="链接名称">
+            <el-input 
+                v-model="customLinkName" 
+                placeholder="给我的分享链接起个名字"
+                maxlength="20"
+                show-word-limit
+            ></el-input>
+            </el-form-item>
+            <el-form-item label="分享链接">
+            <el-input 
+                v-model="generatedLink" 
+                readonly
+                class="share-link-input"
+            >
+                <template slot="append">
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on }">
+                    <v-btn 
+                        icon
+                        @click="copyLink"
+                        v-on="on"
+                    >
+                        <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                    </template>
+                    <span>复制链接</span>
+                </v-tooltip>
+                </template>
+            </el-input>
+            </el-form-item>
+        </el-form>
+        </el-dialog>
 
 
 
@@ -568,11 +609,22 @@ export default {
     }
   },
   created() {
-    if (this.selectedProj == null) {
-      this.$message({
-        type: 'info',
-        message: '请在左侧选择项目以继续！'
-      });
+    // if (this.selectedProj == null) {
+    //   this.$message({
+    //     type: 'info',
+    //     message: '请在左侧选择项目以继续！'
+    //   });
+    // } else {
+    //   this.getTaskList();
+    //   this.getPersonList();
+    // }
+    // 通过路由参数获取项目ID
+    const routeProjectId = this.$route.params.projectId;
+    
+    if (routeProjectId) {
+      this.fetchProject(routeProjectId);
+    } else if (!this.selectedProj) {
+      this.$message.info('请在左侧选择项目以继续！');
     } else {
       this.getTaskList();
       this.getPersonList();
@@ -587,6 +639,9 @@ export default {
     startTime: '2024-01-01',//时间轴开始时间
     endTime: '2024-12-31',
     filterDatas:[],
+    shareDialog: false,
+    customLinkName: '',
+    generatedLink: '',
     datas: [
       {
         id: 'arrayOne',
@@ -1445,9 +1500,58 @@ export default {
       console.log(this.personNameList);
       return this.personNameList[this.personIdList.indexOf(id)];
     },
+    // 生成分享链接
+    generateShareLink() {
+        if (!this.selectedProj) {
+            this.$message.error('请先选择项目');
+            return;
+        }
+        
+        // 生成默认链接名称
+        const defaultName = `${this.selectedProj.projectName}任务视图`;
+        this.customLinkName = this.customLinkName || defaultName;
+        
+        // 生成友好URL
+        const slug = this.slugify(this.customLinkName);
+        this.generatedLink = `${window.location.origin}/#/share/tasks/${this.selectedProj.projectId}-${slug}`;
+        
+        this.shareDialog = true;
+    },
+    
+    async copyLink() {
+        try {
+        if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(this.generatedLink)
+        } else {
+        const input = document.createElement('input')
+        input.value = this.generatedLink
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand('copy')
+        document.body.removeChild(input)
+        }
+
+        this.copySuccess = true
+        setTimeout(() => {
+        this.copySuccess = false
+        }, 2000)
+    } catch (err) {
+        console.error('复制失败:', err)
+        this.$message.error('复制失败，请手动复制链接')
+    }
+  },
+
+    slugify(text) {
+        return text.toString().toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w-]+/g, '')
+        .replace(/--+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+    },
     getTopicColor: topicSetting.getColor,
     getLinearGradient: topicSetting.getLinearGradient
-  }
+  },
 }
 </script>
 
@@ -1477,5 +1581,15 @@ export default {
   position: relative;
   height: 30px;
   width: 30px;
+}
+
+.share-link-input .el-input__inner {
+  background-color: #f5f7fa;
+  cursor: text;
+}
+
+.share-link-input .el-input-group__append {
+  background-color: #fff;
+  border-left: 0;
 }
 </style>

@@ -213,3 +213,17 @@ export const isDocLocked = (data) => {
 export const generateLabel = (data) => {
   return request.post("/api/ai/generateLabel", data);
 }
+
+// ==================== AI 聊天助手相关API ====================
+
+/**
+ * 发送消息给AI助手
+ * @param {Object} data { message: string, context: Array }
+ */
+export const sendToAI = (data) => {
+    return request.post("/api/ai/chat", data);
+  }
+
+export const getSummary = (data) => {
+    return request.post("/api/ai/summary", data);
+}
