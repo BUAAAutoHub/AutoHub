@@ -115,6 +115,28 @@ export default {
     onCursorActivity() {
       this.selectedText = this.cmEditor.getSelection()
     },
+    analyWholeFile() {
+        if (this.fileContent.length <= 10) {
+            this.$message({
+                type: 'error',
+                message: '喵呜~ 代码太短了啦 (ฅ´ω`ฅ) 再多写一点好不好'
+            })
+            return
+        }
+        //如果文件长度大于Cookie最长长度，就不诊断了
+        // if (this.fileContent.length > 4096) {
+        //     this.$message({
+        //         type: 'error',
+        //         message: '文件太长了，AI会罢工的！'
+        //     })
+        //     return
+        // }
+        // Cookies.set('diag', this.fileContent)
+        // console.log('cookies content:', Cookies.get('diag'))
+        localStorage.setItem('diag', this.fileContent)
+        console.log('localStorage content:', localStorage.getItem('diag'))
+        window.open('/user/ai/analysis', '_blank')
+    },
     diagSelected() {
       //如果文件长度大于Cookie最长长度，就不诊断了
       if (this.selectedText.length > 4096) {
@@ -127,7 +149,7 @@ export default {
       if (this.selectedText.length <= 10) {
         this.$message({
           type: 'error',
-          message: '代码这么短，怎么诊断嘛'
+          message: '喵呜~ 代码太短了啦 (ฅ´ω`ฅ) 再多写一点好不好'
         })
         return
       }
@@ -766,7 +788,7 @@ export default {
             </el-button>
 
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item command="a">查看文件贡献图</el-dropdown-item>
+              <!-- <el-dropdown-item command="a">查看文件贡献图</el-dropdown-item> -->
               <el-dropdown-item command="b">下载当前文件</el-dropdown-item>
               <el-dropdown-item command="c">新建文件</el-dropdown-item>
               <el-dropdown-item command="d">多人协同编辑</el-dropdown-item>
@@ -801,30 +823,42 @@ export default {
        <v-col cols="3" v-if="fileContentReady">
             <h2 :style="'text-decoration: none; color: ' + getTopicColor(user.topic)">代码助手</h2>
             <v-card max-height="calc(100vh - 300px)" min-height="calc(100vh - 300px)" class="overflow-y-auto overflow-x-hidden">
-              <v-card-title :style="getLinearGradient(user.topic)"><strong>欢迎来到代码助手</strong></v-card-title>
-              <v-divider></v-divider>
-              <v-card-title>单元测试</v-card-title>
-              <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
-              </v-card-actions>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestWholeFile"><v-icon>mdi-check</v-icon>对整个文件</v-btn>
-              </v-card-actions>
-              <v-divider></v-divider>
-              <v-card-title>代码诊断</v-card-title>
-              <v-card-text>如果您阅读此代码比较困难，AutoHub也很乐意对您选中的代码，或是整个文件进行代码诊断</v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
-              </v-card-actions>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagWholeFile"><v-icon>mdi-code-braces</v-icon>对整个文件</v-btn>
-              </v-card-actions>
-              <v-row style="height: 5rem"></v-row>
+        
+                <v-divider></v-divider>
+
+                <v-card-title>人机协同</v-card-title>
+                <v-card-text>AutoHub也很乐意对您选中的代码，或是整个文件进行代码优化</v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
+                </v-card-actions>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagWholeFile"><v-icon>mdi-code-braces</v-icon>对整个文件</v-btn>
+                </v-card-actions>
+
+                <v-divider></v-divider>
+
+                <v-card-title>静态分析</v-card-title>
+                <v-card-text>AutoHub帮助您管理源代码的质量，快速定位Bug、漏洞以及不优雅的地方</v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="analyWholeFile"><v-icon>mdi-magnify-scan</v-icon>对整个文件</v-btn>
+                </v-card-actions>
+                
+                <v-divider></v-divider>
+
+                <v-card-title>单元测试</v-card-title>
+                <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
+                </v-card-actions>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestWholeFile"><v-icon>mdi-check</v-icon>对整个文件</v-btn>
+                </v-card-actions>
+
             </v-card>
           </v-col>
     </v-row>
@@ -843,6 +877,11 @@ export default {
 <style>
 .CodeMirror {
   height: calc(100vh - 300px);
+}
+
+.v-card__title {
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
 .need-mono {
