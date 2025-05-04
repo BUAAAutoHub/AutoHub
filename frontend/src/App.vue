@@ -176,14 +176,14 @@
                           <v-list-item-title>新建PR</v-list-item-title>
                         </v-list-item-content>
                       </v-list-item>
-                      <v-list-item link :to="'/newIssue'" style="padding-left: 30px">
+                      <!-- <v-list-item link :to="'/newIssue'" style="padding-left: 30px">
                         <v-list-item-avatar>
                           <v-icon :color="getDarkColor(user.topic)">mdi-check-circle-outline</v-icon>
                         </v-list-item-avatar>
                         <v-list-item-content>
                           <v-list-item-title>新建Issue</v-list-item-title>
                         </v-list-item-content>
-                      </v-list-item>
+                      </v-list-item> -->
                     </div>
                   </v-expand-transition>
                 </v-list-item-group>
@@ -203,7 +203,7 @@
                     <v-icon :color="getDarkColor(user.topic)">mdi-atom-variant</v-icon>
                   </v-list-item-avatar>
                   <v-list-item-content>
-                    <v-list-item-title>代码诊断</v-list-item-title>
+                    <v-list-item-title>人机协同</v-list-item-title>
                   </v-list-item-content>
                 </v-list-item>
   
@@ -215,14 +215,14 @@
                     <v-list-item-title>生成测试数据</v-list-item-title>
                   </v-list-item-content>
                 </v-list-item>
-                <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/user/database'">
+                <!-- <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/user/database'">
                   <v-list-item-avatar>
                     <v-icon :color="getDarkColor(user.topic)">mdi-database</v-icon>
                   </v-list-item-avatar>
                   <v-list-item-content>
                     <v-list-item-title>团队数据库</v-list-item-title>
                   </v-list-item-content>
-                </v-list-item>
+                </v-list-item> -->
               </v-list>
             </v-card>
   
