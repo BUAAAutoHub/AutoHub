@@ -286,7 +286,6 @@ class getRules(View):
             kwargs: dict = json.loads(request.body)
             repo_id = kwargs.get("repoId")
             botrules = BotRule.objects.filter(repo_id=repo_id)
-            print(botrules,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             resultRules = []
             for rule in PR_RULES:
                 resultRules.append({

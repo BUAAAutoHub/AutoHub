@@ -245,20 +245,27 @@ class AutoReviewBot:
                                     item_type=item_type, item_number=item_number)
 
         data = []
+        comment_messages = []
         # 应用规则
         for rule in all_rules:
             if rule["action"] == "comment":
                 result = self.rule_manager.evaluate_rule(rule, content)
                 if not result["is_valid"]:
-                    message = str(result["message"]) + str(result["suggestions"])
-                    # _add_comment(self.token, self.repo.remote_path,
-                    #             item_type, item_number, message)
-                    data.append(f"处理{item_type}#{item_number}:\n反馈信息：{message}")
+                    message = str(result["message"]) + "," + str(",".join(result["suggestions"]))
+                    if message.strip():
+                        comment_messages.append(message)
             elif rule["action"] == "label":
                 suggested_labels = self.label_manager.get_suggested_labels(content, available_labels)
-                # _add_labels(self.token, self.repo.remote_path,
-                #             item_type, item_number, suggested_labels)
+                _add_labels(self.token, self.repo.remote_path,
+                            item_type, item_number, suggested_labels)
                 data.append(f"处理{item_type}#{item_number}:\n提供标签：{suggested_labels}")
+
+        if comment_messages:
+            final_comment = "\n\n".join(comment_messages)
+            _add_comment(self.token, self.repo.remote_path,
+                        item_type, item_number, final_comment)
+            data.append(f"处理{item_type}#{item_number}:\n反馈信息：{final_comment}")
+
         return data
 
     def run_scheduled_review(self):
