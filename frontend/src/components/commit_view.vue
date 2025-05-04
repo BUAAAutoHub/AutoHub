@@ -133,6 +133,7 @@ export default {
       <br> <v-divider></v-divider> <br>
       <v-card-actions>
         <v-spacer></v-spacer>
+        <v-btn width="10rem" :color="getTopicColor(user.topic)" link :to="'/dev/bot/' + user.id +'/'+ proj.id + '/' + selectedRepo.id + '/'" target="_blank"><v-icon>mdi-account</v-icon>项目BOT</v-btn>
         <v-btn width="10rem" :color="getTopicColor(user.topic)" link :href="'https://github.com/' + selectedRepo.user + '/' + selectedRepo.repo + '/tree/' + selectedBranch.name" target="_blank"><v-icon>mdi-github</v-icon>在GitHub查看</v-btn>
         <v-btn width="10rem" :color="getTopicColor(user.topic)" link :to="'/dev/' + proj.id + '/' + selectedRepo.id + '/' + selectedBranch.name + '/'" target="_blank"><v-icon>mdi-send</v-icon>浏览详情</v-btn>
       </v-card-actions>

@@ -32,7 +32,7 @@ VueMarkdownEditor.use(vuepressTheme, {
         // md.set(option).use(plugin);
     },
 });
-axios.defaults.baseURL = 'http://127.0.0.1:8000/'
+axios.defaults.baseURL = 'http://10.254.47.34:8000/'
 Vue.use(ElementUI, axios, VueAxios)
 axios.defaults.withCredentials = true;
 Vue.use(mavonEditor);

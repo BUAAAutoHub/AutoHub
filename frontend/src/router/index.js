@@ -25,6 +25,7 @@ const router = new VueRouter({
     },
     {
       path:'/allPerson',
+      // todo 仅做测试
       component: () => import('../views/user/projectPlanning/allPerson.vue')
     },
     {
@@ -64,18 +65,24 @@ const router = new VueRouter({
     {
       path: '/login',
       name: 'login',
+      //component: () => import('../views/Login.vue'),
       component: () => import('../views/Login.vue'),
       meta: { requireLogin: false }
     },
-    // {
-    //   path: '/register',
-    //   name: 'register',
-    //   component: () => import('../views/Register.vue')
-    // },
     {
       path: '/dev',
       name: 'dev',
       component: () => import('../views/Dev.vue')
+    },
+    {
+      path: '/dev/bot/:userid/:projid/:repoid',
+      name: 'bot',
+      component: () => import('../views/dev/Bot/Bot.vue')
+    },
+    {
+      path: '/room',
+      name: '协同编辑房间',
+      component: () => import('../views/dev/Collab/Room.vue')
     },
     {
       path: '/dev/:projid/:repoid/:branchname+',
@@ -107,6 +114,11 @@ const router = new VueRouter({
       name: '新建PR',
       component: () => import('../views/user/develop/PullRequest.vue'),
     },
+    {
+        path: '/newIssue',
+        name: '新建Issue',
+        component: () => import('../views/user/develop/Issue.vue'),
+      },
     {
       path: '/profile',
       name: 'profile',

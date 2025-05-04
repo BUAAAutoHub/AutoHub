@@ -4,7 +4,7 @@
             <v-col cols="12">
                 <v-card>
                     <v-card-title>
-                        <h2>请求进行代码评审 - {{ selectedProj.projectName }}</h2>
+                        <h2>遇到问题？立即提出问题 - {{ selectedProj.projectName }}</h2>
                     </v-card-title>
                     <v-card-text class="pa-4">
                         <v-row>
@@ -18,29 +18,7 @@
                               </div>
                             </v-col>
                         </v-row>
-                        <v-row>
-                            <v-col cols="5">
-                                <v-select
-                                    v-model="srcBranch"
-                                    label="源分支"
-                                    placeholder="请选择"
-                                    :items="branches"
-                                    item-text="label"
-                                    item-value="value"
-                                >
-                                </v-select>
-                            </v-col>
-                            <v-col cols="5">
-                                <v-select
-                                    v-model="dstBranch"
-                                    label="目标分支"
-                                    :items="branches"
-                                    item-text="label"
-                                    item-value="value"
-                                >
-                                </v-select>
-                            </v-col>
-                        </v-row>
+                        
                         <v-row>
                             <v-col cols="7">
                                 <v-text-field v-model="title" label="标题" placeholder="请输入标题"></v-text-field>
@@ -94,8 +72,6 @@ export default {
             userId: '',
             projId: undefined,
             repoId: undefined,
-            srcBranch: '',
-            dstBranch: '',
             editor: null,
             title: '',
             html: '',
@@ -116,54 +92,37 @@ export default {
             this.editor = Object.seal(editor) // 一定要用 Object.seal() ，否则会报错
         },
 
-
         handle_submit() {
             console.log(this.html)
             if (
                 this.title && this.title.length > 0 &&
                 this.html && this.html.length > 0
             ) {
-                if (this.srcBranch === this.dstBranch) {
-                    this.$message.error({
-                        labels: 'error',
-                        message: '源分支与目标分支不能相同'
-                    });
-                } else if (!this.srcBranch) {
-                    this.$message.error({
-                        labels: 'error',
-                        message: '请选择源分支'
-                    });
-                } else if (!this.dstBranch) {
-                    this.$message.error({
-                        labels: 'error',
-                        message: '请选择目标分支'
-                    });
-                }
-                axios.post('/api/develop/gitPr', {
-                    userId: this.userId,
-                    projectId: this.projectId,
-                    repoId: this.curRepoId,
-                    branch: this.srcBranch,
-                    title: this.title,
-                    body: this.html,
-                    base: this.dstBranch
-                }).then( (res) => {
-                    if (res.data.errcode === 0) {
-                        this.$message.success({
-                            labels: 'success',
-                            message: '成功提交PR'
-                        });
-                    } else {
-                        alert('/api/develop/gitPr error with not 0 err code (' + res.data.errcode + ') ' + res.data.message)
-                    }
-                })
+                // todo 待修改 
+                // axios.post('/api/develop/gitPr', {
+                //     userId: this.userId,
+                //     projectId: this.projectId,
+                //     repoId: this.curRepoId,
+                //     branch: this.srcBranch,
+                //     title: this.title,
+                //     body: this.html,
+                //     base: this.dstBranch
+                // }).then( (res) => {
+                //     if (res.data.errcode === 0) {
+                //         this.$message.success({
+                //             labels: 'success',
+                //             message: '成功提交PR'
+                //         });
+                //     } else {
+                //         alert('/api/develop/gitPr error with not 0 err code (' + res.data.errcode + ') ' + res.data.message)
+                //     }
+                // })
             } else {
                 this.$message.error({
                     labels: 'error',
                     message: '请填写标题和内容！'
                 });
             }
-
         },
         handle_cancel() {
             this.title = '';
@@ -277,11 +236,6 @@ export default {
 .base {
     margin: 30px;
 }
-
-.mavon-editor {
-  z-index: 10 !important;
-}
-
 
 .title {
     display: flex;
