@@ -28,6 +28,7 @@ from myApp.utils.projects import (
     notice,
     userChat,
     projectBot,
+    projectBotRule,
 )
 from myApp.utils.user import userBasic
 from myApp.tests import debug
@@ -165,7 +166,17 @@ urlpatterns = [
     path("api/mailTest", mail.MailTest.as_view()),
     # BOT 功能 api
     path("api/bot/createBot", projectBot.BotCreate.as_view()),
-    path("api/bot/disableBot", projectBot.DisableBot.as_view()),
+    path("api/bot/removeBot", projectBot.BotRemove.as_view()),
+    path("api/bot/disableBot", projectBot.DisableOrEnableBot.as_view()),
+    path("api/bot/autoreview", projectBot.AutoReview.as_view()),
+    path("api/bot/addlabel2db", projectBotRule.AddLabel2db.as_view()),
+    path("api/bot/removelabel", projectBotRule.RemoveLabelFromdb.as_view()),
+    path("api/bot/getlabels", projectBotRule.getLabels.as_view()),
+    path("api/bot/addrule2db", projectBotRule.AddRule2db.as_view()),
+    path("api/bot/removerule", projectBotRule.RemoveRuleFromdb.as_view()),
+    path("api/bot/getrules", projectBotRule.getRules.as_view()),
+    path("api/bot/getactive", projectBot.getActive.as_view()),
+    path("api/bot/getexist", projectBot.getExist.as_view()),
 
     # AI api
     path("api/ai/prompt", AI.PromptGenerateCode.as_view()),
