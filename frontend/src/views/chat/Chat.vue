@@ -36,10 +36,6 @@ export default {
             currentDeleteRoom: null,
             // 新增默认群聊名称状态
             defaultGroupName: '',
-            // 讨论室摘要生成
-            summaryDialog: false,
-            summaryContent: '',
-            summaryLoading: false
         }
     },
     inject: {
@@ -47,11 +43,10 @@ export default {
       proj: {default: null}
     },
     created() {
-        //this.initWS(1)
+        // this.initWS(1)
         this.updateChatRooms()
         this.updatePopulation()
         this.initMessagingService()
-
         // // 在created钩子中增加路由参数解析
         // const routeQuery = this.$route.query
         // if (routeQuery.defaultGroupName) {
@@ -164,7 +159,7 @@ export default {
             })
         },
         createChatRoom() {
-            // 自动生成默认名称时的处理逻辑
+          // 自动生成默认名称时的处理逻辑
             if (this.createRoomName === this.defaultGroupName) {
                 // 添加时间戳保证唯一性
                 const timestamp = new Date().toLocaleDateString().replace(/\//g, '-')
@@ -282,9 +277,8 @@ export default {
           })
         },
         initWS(rid) {
-            
-          console.log('initWS: connecting to ws://127.0.0.1/:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
-          const socket = new WebSocket('ws://127.0.0.1:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
+          console.log('initWS: connecting to ws://10.254.47.34/:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString())
+          const socket = new WebSocket('ws://10.254.47.34:8000/ws/chat/' + this.user.id.toString() + '/' + rid.toString());
 
           const onopen = (e) => {
             console.log('socket opened')
@@ -375,13 +369,11 @@ export default {
               return
             }
             console.log('will send: ' + this.messageInput)
-
             this.chatRooms[this.selectedRoom].ws.send(JSON.stringify({
-                  sender: this.user.id,
-                  type: 1,
-                  message: this.messageInput
+                sender: this.user.id,
+                type: 1,
+                message: this.messageInput
             }));
-            
             this.scrollToBottom() // 新增
             this.messageInput = ''
         },
@@ -394,7 +386,7 @@ export default {
                 this.messageServiceAvailable = true;
                 const notification = new Notification('已注册消息通知', {
                   icon: '../../favicon.ico',
-                  body: "消息通知已开启，JiHub会在收到新消息时显示提醒",
+                  body: "消息通知已开启，AutoHub会在收到新消息时显示提醒",
                 })
               } else {
                 console.log('Notification permission denied')
@@ -501,6 +493,13 @@ export default {
           // 示例逻辑：创建者或管理员可以删除
           // return this.user.role === 'admin' || room.creatorId === this.user.id
         },
+        // 生成链接
+        linkify(text) {
+          const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+          return text.replace(urlRegex, url => {
+            return `<a href="${url}" target="_blank" class="message-link">${url}</a>`;
+          });
+        },
         // 新增生成摘要方法
         async generateSummary() {
             this.summaryLoading = true
@@ -546,13 +545,12 @@ export default {
 <v-container>
     <h1>聊天室</h1>
     <v-row>
-        <!-- 左侧聊天室列表 -->
         <v-col cols="3">
             <v-list>
                 <v-list-item-group v-model="selectedRoom" mandatory>
                     <v-list-item two-line v-for="item in chatRooms" :key="item.id">
                         <v-list-item-content>
-                          <v-list-item-title style="font-weight: bold">
+                            <v-list-item-title style="font-weight: bold">
                             <span :style="'color: ' + getDarkColor(user.topic)">{{ item.title }}</span>
                             <span class="float-end grey--text">{{item.desc}}</span>
                           </v-list-item-title>
@@ -596,22 +594,22 @@ export default {
                       <v-icon :color="getDarkColor(user.topic)">mdi-plus-circle</v-icon>
                     </v-list-item-icon>
                 </v-list-item>
-            </v-list>
+              </v-list>
 
-            <!-- 创建聊天室对话框（保持不变） -->
-            <v-dialog v-model="createSheet">
-                <v-card>
-                <v-card-title>
-                    创建新的聊天室
-                    <v-chip v-if="defaultGroupName" small color="primary" class="ml-2">
-                    智能建议名称
-                    </v-chip>
-                </v-card-title>
-                <v-card-text>
-                    <v-row>
-                    <v-spacer></v-spacer>
-                    <v-col cols="5">
-                        <v-text-field 
+
+                <v-dialog v-model="createSheet">
+                  <v-card>
+                    <v-card-title>
+                      创建新的聊天室
+                      <v-chip v-if="defaultGroupName" small color="primary" class="ml-2">
+                      智能建议名称
+                      </v-chip>
+                    </v-card-title>
+                    <v-card-text>
+                      <v-row>
+                        <v-spacer></v-spacer>
+                        <v-col cols="5">
+                          <v-text-field 
                         label="聊天室名称"
                         v-model="createRoomName"
                         :hint="defaultGroupName ? '基于当前项目生成的建议名称' : ''"
@@ -626,59 +624,59 @@ export default {
                             <v-icon :color="getTopicColor(user.topic)">mdi-forum</v-icon>
                         </template>
                         </v-text-field>
-                    </v-col>
-                    <v-col cols="5">
-                      <v-text-field label="聊天室简介" v-model="createRoomDesc"></v-text-field>
-                    </v-col>
-                    <v-spacer></v-spacer>
-                  </v-row>
-                  <v-row>
-                    <v-spacer></v-spacer>
-                    <v-col cols="5">
-                      从右边选择聊天室成员
+                        </v-col>
+                        <v-col cols="5">
+                          <v-text-field label="聊天室简介" v-model="createRoomDesc"></v-text-field>
+                        </v-col>
+                        <v-spacer></v-spacer>
+                      </v-row>
+                      <v-row>
+                        <v-spacer></v-spacer>
+                        <v-col cols="5">
+                          从右边选择聊天室成员
 
-                      <v-chip pill class="ma-2 accent-1" color="green"
-                        @click="() => {
-                          this.$message({
-                            type: 'error',
-                            message: '把自己踢出聊天室，这也太狠了！'
-                          })
-                        }"
-                      >
-                        <v-avatar left><v-img :src="getIdenticon(user.name, 50, 'user')" ></v-img></v-avatar>
-                        您
-                      </v-chip>
+                          <v-chip pill class="ma-2 accent-1" color="green"
+                            @click="() => {
+                              this.$message({
+                                type: 'error',
+                                message: '把自己踢出聊天室，这也太狠了！'
+                              })
+                            }"
+                          >
+                            <v-avatar left><v-img :src="getIdenticon(user.name, 50, 'user')" ></v-img></v-avatar>
+                            您
+                          </v-chip>
 
-                      <v-chip v-for="item in selectedPopulation" class="ma-2 accent-1" color="green" :key="item.peopleId"
-                        @click="() => {
-                          expelledPopulation.push(item)
-                          selectedPopulation.splice(selectedPopulation.indexOf(item), 1)
-                        }"
-                      >
-                        <v-avatar left><v-img :src="getIdenticon(item.peopleName, 50, 'user')" ></v-img></v-avatar>
-                        {{ item.peopleName }}
-                      </v-chip>
+                          <v-chip v-for="item in selectedPopulation" class="ma-2 accent-1" color="green" :key="item.peopleId"
+                            @click="() => {
+                              expelledPopulation.push(item)
+                              selectedPopulation.splice(selectedPopulation.indexOf(item), 1)
+                            }"
+                          >
+                            <v-avatar left><v-img :src="getIdenticon(item.peopleName, 50, 'user')" ></v-img></v-avatar>
+                            {{ item.peopleName }}
+                          </v-chip>
 
-                    </v-col>
+                        </v-col>
 
-                    <v-col cols="5">
-                      <span v-if="expelledPopulation.length !== 0">不在聊天室的成员：</span>
-                      <span v-else>大家都在聊天室里了哦</span>
+                        <v-col cols="5">
+                          <span v-if="expelledPopulation.length !== 0">不在聊天室的成员：</span>
+                          <span v-else>大家都在聊天室里了哦</span>
 
-                      <v-chip v-for="item in expelledPopulation" :key="item.peopleId" class="ma-2"
-                        @click="() => {
-                          selectedPopulation.push(item)
-                          expelledPopulation.splice(expelledPopulation.indexOf(item), 1)
-                        }"
-                      >
-                        <v-avatar left><v-img :src="getIdenticon(item.peopleName, 50, 'user')" ></v-img></v-avatar>
-                        {{ item.peopleName }}
-                      </v-chip>
-                    </v-col>
-                    <v-spacer></v-spacer>
-                  </v-row>
+                          <v-chip v-for="item in expelledPopulation" :key="item.peopleId" class="ma-2"
+                            @click="() => {
+                              selectedPopulation.push(item)
+                              expelledPopulation.splice(expelledPopulation.indexOf(item), 1)
+                            }"
+                          >
+                            <v-avatar left><v-img :src="getIdenticon(item.peopleName, 50, 'user')" ></v-img></v-avatar>
+                            {{ item.peopleName }}
+                          </v-chip>
+                        </v-col>
+                        <v-spacer></v-spacer>
+                      </v-row>
 
-                    <!-- 添加智能命名说明 -->
+                      <!-- 添加智能命名说明 -->
                     <v-alert v-if="defaultGroupName" type="info" dense outlined class="mt-3">
                     <div class="text-caption">
                         智能命名规则：
@@ -687,21 +685,20 @@ export default {
                         <v-chip x-small color="info">创建日期</v-chip>
                     </div>
                     </v-alert>
-                </v-card-text>
-                <v-card-actions>
-                  <v-spacer></v-spacer>
-                  <v-btn plain :color="getDarkColor(user.topic)" @click="createChatRoom">创建！</v-btn>
-                </v-card-actions>
-              </v-card>
-            </v-dialog>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn plain :color="getDarkColor(user.topic)" @click="createChatRoom">创建！</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
         </v-col>
 
-        <!-- 右侧主聊天区域 -->
         <v-col cols="9">
             <v-row v-if="chatRooms.length > 0">
                 <v-col cols="12">
-                    <v-card>
-                        <!-- 群聊头部信息 -->
+                  <v-card>
+                      <!-- 群聊头部信息 -->
                         <v-card-title class="d-flex align-center">
                             <div>
                                 <div class="text-h5">{{ chatRooms[selectedRoom].title }}</div>
@@ -715,7 +712,6 @@ export default {
                                 </div>
                             </div>
                             <v-spacer></v-spacer>
-
                             <!-- 新增生成摘要按钮 -->
                             <v-btn 
                                 icon 
@@ -733,7 +729,6 @@ export default {
                                 <v-icon>mdi-magnify</v-icon>
                             </v-btn>
                         </v-card-title>
-
 
                         <!-- 新增摘要对话框 -->
                         <v-dialog v-model="summaryDialog" max-width="800">
@@ -837,7 +832,7 @@ export default {
                                             </v-avatar>
                                             <div class="message-bubble received-message">
                                                 <div class="font-weight-bold text-caption">{{ item.from }}</div>
-                                                <div>{{ item.content }}</div>
+                                                <div v-html="linkify(item.content)"></div>
                                                 <span class="message-time">{{ formatTime(item.time) }}</span>
                                             </div>
                                         </div>
@@ -847,7 +842,7 @@ export default {
                                             :key="index + 'sent'"
                                             class="d-flex justify-end mb-4">
                                             <div class="message-bubble sent-message">
-                                                <div>{{ item.content }}</div>
+                                                <div v-html="linkify(item.content)"></div>
                                                 <span class="message-time">
                                                     {{ formatTime(item.time) }} · 已送达
                                                 </span>
@@ -877,86 +872,70 @@ export default {
                                         </template>
                                     </v-text-field>
                                 </div>
-                            </div>
-                        </v-card-text>
-
-                        <!-- 成员操作面板 -->
-                        <v-expand-transition>
-                            <div v-if="chatRooms[selectedRoom].selectedUser !== null">
-                                <v-divider></v-divider>
-                                <v-card-actions>
-                                    <v-avatar size="50" class="mx-1">
-                                        <v-img :src="getIdenticon(chatRooms[selectedRoom].selectedUser.userName, 50, 'user')"/>
-                                    </v-avatar>
-                                    <div>
-                                        <strong>{{ chatRooms[selectedRoom].selectedUser.userName }}</strong>
-                                        <span v-if="chatRooms[selectedRoom].selectedUser.userName === user.name">
-                                            （您自己）
-                                        </span>
-                                    </div>
-                                    <v-spacer></v-spacer>
-                                    <v-btn v-if="chatRooms[selectedRoom].selectedUser.userName !== user.name"
-                                          color="red"
-                                          class="white--text"
-                                          @click="expelSheet = true">
-                                        <v-icon left>mdi-alert</v-icon>
-                                        移除群聊
-                                    </v-btn>
-                                </v-card-actions>
-                            </div>
-                        </v-expand-transition>
-                    </v-card>
+                            </div>                      </v-card-text>
+                      <v-expand-transition>
+                        <div v-if="chatRooms[selectedRoom].selectedUser !== null">
+                          <v-divider></v-divider>
+                          <v-card-actions>
+                            <v-avatar size="50px" class="mx-1"><v-img :src="getIdenticon(chatRooms[selectedRoom].selectedUser.userName, 50, 'user')"></v-img></v-avatar>
+                            <strong>{{chatRooms[selectedRoom].selectedUser.userName}}</strong>
+                            <strong>{{chatRooms[selectedRoom].selectedUser.userName === this.user.name ? '（您自己）' : ''}}</strong>
+                            <v-spacer></v-spacer>
+                            <v-btn v-if="chatRooms[selectedRoom].selectedUser.userName !== this.user.name" color="red" class="white--text" @click="expelSheet = !expelSheet"><v-icon>mdi-alert</v-icon>移除群聊</v-btn>
+                          </v-card-actions>
+                        </div>
+                      </v-expand-transition>
+                  </v-card>
                 </v-col>
 
-                <!-- 移除成员确认 -->
                 <v-bottom-sheet inset v-model="expelSheet">
-                    <v-card v-if="chatRooms[selectedRoom].selectedUser !== null">
-                      <v-card-title>删除成员确认</v-card-title>
-                      <v-card-text>警告！这样做会导致成员 {{ chatRooms[selectedRoom].selectedUser.userName }} 无法访问聊天室“{{chatRooms[selectedRoom].title }}”。您确定要删除成员 {{ chatRooms[selectedRoom].selectedUser.userName }} 吗？</v-card-text>
-                      <v-card-actions>
-                        <v-spacer></v-spacer>
-                        <v-btn color="green" class="white--text" @click="expelSheet = !expelSheet">再想想</v-btn>
-                        <v-btn color="red" class="white--text" @click="() => expelUser(chatRooms[selectedRoom], chatRooms[selectedRoom].selectedUser)"><v-icon>mdi-alert</v-icon>我确定</v-btn>
-                      </v-card-actions>
-                      <div style="height: 50vh"></div>
-                    </v-card>
+                  <v-card v-if="chatRooms[selectedRoom].selectedUser !== null">
+                    <v-card-title>删除成员确认</v-card-title>
+                    <v-card-text>警告！这样做会导致成员 {{ chatRooms[selectedRoom].selectedUser.userName }} 无法访问聊天室“{{chatRooms[selectedRoom].title }}”。您确定要删除成员 {{ chatRooms[selectedRoom].selectedUser.userName }} 吗？</v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn color="green" class="white--text" @click="expelSheet = !expelSheet">再想想</v-btn>
+                      <v-btn color="red" class="white--text" @click="() => expelUser(chatRooms[selectedRoom], chatRooms[selectedRoom].selectedUser)"><v-icon>mdi-alert</v-icon>我确定</v-btn>
+                    </v-card-actions>
+                    <div style="height: 50vh"></div>
+                  </v-card>
                 </v-bottom-sheet>
 
                 <!-- 邀请成员对话框 -->
                 <v-dialog v-model="inviteSheet">
-                    <v-card>
-                      <v-card-title>邀请新成员加入聊天室</v-card-title>
-                      <v-card-text v-if="inviteNominees.length !== 0">
-                        <v-chip-group
-                            mandatory
-                            v-model="inviteSelected"
-                            active-class="primary--text">
-                          <v-chip v-for="item in inviteNominees" class="ma-2" :key="item.peopleId"
-                                    @click="() => {
-                                  expelledPopulation.push(item)
-                                  selectedPopulation.splice(selectedPopulation.indexOf(item), 1)
-                                }"
-                            >
-                              <v-avatar left><v-img :src="getIdenticon(item.peopleName, 50, 'user')" ></v-img></v-avatar>
-                              {{ item.peopleName }}
-                          </v-chip>
-                        </v-chip-group>
-                        <v-divider></v-divider>
-                        <v-card-subtitle v-if="inviteNominees[inviteSelected] !== undefined">要邀请 {{inviteNominees[inviteSelected].peopleName}} 进入群聊“{{ chatRooms[selectedRoom].title }}”吗？</v-card-subtitle>
-                        <v-card-actions>
-                          <v-btn plain :color="getDarkColor(user.topic)" @click="() => inviteUserToChat(chatRooms[selectedRoom].id, inviteNominees[inviteSelected].peopleId)">确定邀请</v-btn>
-                          <v-btn plain class="red--text" @click="() => inviteSheet = !inviteSheet">我再想想</v-btn>
-                        </v-card-actions>
-                      </v-card-text>
-                      <v-card-text v-else>
-                        <v-card-subtitle>项目所有的成员都在聊天室里了！</v-card-subtitle>
-                        <v-card-actions>
-                          <v-btn plain :color="getDarkColor(user.topic)" @click="() => inviteSheet = !inviteSheet">好</v-btn>
-                        </v-card-actions>
-                      </v-card-text>
-                    </v-card>
+                  <v-card>
+                    <v-card-title>邀请新成员加入聊天室</v-card-title>
+                    <v-card-text v-if="inviteNominees.length !== 0">
+                      <v-chip-group
+                          mandatory
+                          v-model="inviteSelected"
+                          active-class="primary--text">
+                        <v-chip v-for="item in inviteNominees" class="ma-2" :key="item.peopleId"
+                                  @click="() => {
+                                expelledPopulation.push(item)
+                                selectedPopulation.splice(selectedPopulation.indexOf(item), 1)
+                              }"
+                          >
+                            <v-avatar left><v-img :src="getIdenticon(item.peopleName, 50, 'user')" ></v-img></v-avatar>
+                            {{ item.peopleName }}
+                        </v-chip>
+                      </v-chip-group>
+                      <v-divider></v-divider>
+                      <v-card-subtitle v-if="inviteNominees[inviteSelected] !== undefined">要邀请 {{inviteNominees[inviteSelected].peopleName}} 进入群聊“{{ chatRooms[selectedRoom].title }}”吗？</v-card-subtitle>
+                      <v-card-actions>
+                        <v-btn plain :color="getDarkColor(user.topic)" @click="() => inviteUserToChat(chatRooms[selectedRoom].id, inviteNominees[inviteSelected].peopleId)">确定邀请</v-btn>
+                        <v-btn plain class="red--text" @click="() => inviteSheet = !inviteSheet">我再想想</v-btn>
+                      </v-card-actions>
+                    </v-card-text>
+                    <v-card-text v-else>
+                      <v-card-subtitle>项目所有的成员都在聊天室里了！</v-card-subtitle>
+                      <v-card-actions>
+                        <v-btn plain :color="getDarkColor(user.topic)" @click="() => inviteSheet = !inviteSheet">好</v-btn>
+                      </v-card-actions>
+                    </v-card-text>
+                  </v-card>
                 </v-dialog>
-
+            
                 <!-- 搜索对话框 -->
                 <v-dialog v-model="searchDialog" max-width="600">
                     <v-card>
@@ -1002,32 +981,32 @@ export default {
                             </div>
                         </v-card-text>
                     </v-card>
-                </v-dialog>
+                 </v-dialog>
             </v-row>
 
             <!-- 空状态 -->
             <v-row v-else>
-                <v-col cols="12">
-                    <v-card>
-                        <v-card-title>还没有讨论室哦</v-card-title>
-                        <v-card-text>
-                            <v-card-actions>
-                                <v-btn plain 
+              <v-col cols="12">
+                <v-card>
+                  <v-card-title>还没有讨论室哦</v-card-title>
+                  <v-card-text>
+                    <v-card-actions>
+                      <v-btn plain 
                                       class="green--text accent-1"
                                       @click="createSheet = true">
                                     去创建！
                                 </v-btn>
-                            </v-card-actions>
-                        </v-card-text>
-                    </v-card>
-                </v-col>
+                    </v-card-actions>
+                  </v-card-text>
+                </v-card>
+              </v-col>
             </v-row>
         </v-col>
     </v-row>
 </v-container>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .v-enter-active {
   animation: slideInLeft-enter 0.3s;
 }
@@ -1149,23 +1128,13 @@ export default {
   background: rgba(255,255,255,0.1) !important;
 }
 
-/* 新增生成讨论摘要样式 */
-.summary-content {
-    max-height: 60vh;
-    overflow-y: auto;
-    padding: 16px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    line-height: 1.6;
-}
-
-.summary-content pre {
-    font-family: 'Microsoft YaHei', sans-serif;
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-.v-card__actions button {
-    min-width: 120px;
+.message-link {
+  color: #2196F3 !important;
+  text-decoration: underline;
+  word-break: break-all;
+  &:hover {
+    color: #1976D2 !important;
+    text-decoration: none;
+  }
 }
 </style>
