@@ -371,6 +371,12 @@ import util from "@/views/util";
       }
     },
     methods: {
+        isDuplicateRule(rule) {
+            return this.rules.some(r => r.name === rule.name && r.type === rule.type);
+        },
+        isDuplicateLabel(label) {
+            return this.labels.some(l => l.name === label.name);
+        },
         handleNav(index) {
             const sectionMap = {
                 bot: 'bot-section',
@@ -395,6 +401,17 @@ import util from "@/views/util";
             this.labelModalVisible = true
         },
         async saveLabel() {
+            const newLabel = this.currentLabel;
+            if (!newLabel.name) {
+                this.$message.error('标签名称不能为空');
+                return;
+            }
+
+            if (this.isDuplicateRule(newLabel)) {
+                this.$message.error('已有相同名称的标签，请修改后再试');
+                return;
+            }
+
             try {
                 const response = await axios.post('/api/bot/addlabel2db', {
                     repoId: this.$route.params.repoid,
@@ -455,6 +472,16 @@ import util from "@/views/util";
             this.ruleModalVisible = true
         },
         async saveRule() {
+            const newRule = this.currentRule;
+            if (!newRule.name || !newRule.type) {
+                this.$message.error('规则名称和类型不能为空');
+                return;
+            }
+
+            if (this.isDuplicateRule(newRule)) {
+                this.$message.error('已有相同名称和类型的规则，请修改后再试');
+                return;
+            }
             try {
                 const response = await axios.post('/api/bot/addrule2db', {
                     repoId: this.$route.params.repoid,
@@ -498,7 +525,6 @@ import util from "@/views/util";
         },
         async checkProject() {
             this.checking = true
-            // todo后端请求
             try {
                 const projId = this.$route.params.projid;
                 const repoId = this.$route.params.repoid;
