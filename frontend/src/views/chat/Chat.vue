@@ -500,6 +500,32 @@ export default {
             return `<a href="${url}" target="_blank" class="message-link">${url}</a>`;
           });
         },
+        // 新增生成摘要方法
+        async generateSummary() {
+            this.summaryLoading = true
+            console.log('pid: ', this.proj.projectId)
+            console.log('uid: ', this.user.id)
+            console.log('rid: ', this.chatRooms[this.selectedRoom].id)
+            try {
+                const res = await axios.post('/api/ai/summary', {
+                    pid: this.proj.projectId,
+                    uid: this.user.id,
+                    rid: this.chatRooms[this.selectedRoom].id
+                })
+                
+                if (res.data && res.data.reply) {
+                    this.summaryContent = res.data.reply
+                    this.summaryDialog = true
+                } else {
+                    throw new Error(res.data.message)
+                }
+            } catch (error) {
+                
+                this.$message.error('生成摘要失败: ' + error.message)
+            } finally {
+                this.summaryLoading = false
+            }
+        },
         getDarkColor: topicSetting.getDarkColor,
         getTopicColor: topicSetting.getColor,
         getLinearGradient: topicSetting.getLinearGradient,
@@ -686,10 +712,66 @@ export default {
                                 </div>
                             </div>
                             <v-spacer></v-spacer>
+                            <!-- 新增生成摘要按钮 -->
+                            <v-btn 
+                                icon 
+                                @click="generateSummary"
+                                :loading="summaryLoading"
+                                color="primary"
+                                class="mr-2"
+                            >
+                                <v-icon>mdi-text-box-search</v-icon>
+                                <template v-slot:loader>
+                                    <v-progress-circular indeterminate size="24"></v-progress-circular>
+                                </template>
+                            </v-btn>
                             <v-btn icon @click="searchDialog = true">
                                 <v-icon>mdi-magnify</v-icon>
                             </v-btn>
                         </v-card-title>
+
+                        <!-- 新增摘要对话框 -->
+                        <v-dialog v-model="summaryDialog" max-width="800">
+                            <v-card>
+                                <v-card-title class="headline">
+                                    讨论摘要
+                                    <v-spacer></v-spacer>
+                                    <v-btn 
+                                        icon
+                                        @click="summaryDialog = false"
+                                    >
+                                        <v-icon>mdi-close</v-icon>
+                                    </v-btn>
+                                </v-card-title>
+                                
+                                <v-divider></v-divider>
+                                
+                                <v-card-text class="pa-4">
+                                    <div v-if="summaryContent" class="summary-content">
+                                        <pre style="white-space: pre-wrap;">{{ summaryContent }}</pre>
+                                    </div>
+                                    
+                                    <v-alert
+                                        v-else
+                                        type="info"
+                                        outlined
+                                        class="mt-4"
+                                    >
+                                        正在生成讨论摘要，请稍候...
+                                    </v-alert>
+                                </v-card-text>
+
+                                <v-card-actions>
+                                    <v-spacer></v-spacer>
+                                    <v-btn 
+                                        color="primary"
+                                        @click="summaryDialog = false"
+                                    >
+                                        关闭
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-dialog>
 
                         <!-- 成员列表 -->
                         <v-card-text class="py-2">
