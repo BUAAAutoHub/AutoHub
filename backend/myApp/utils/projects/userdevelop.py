@@ -5,6 +5,9 @@ import requests
 import json
 import os
 import sys
+import tempfile
+import time
+import shutil
 
 from django.http import JsonResponse, FileResponse
 from django.views import View
@@ -2296,3 +2299,106 @@ class DeletePrTask(View):
             return JsonResponse(genUnexpectedlyErrorInfo(response, e))
 
         return JsonResponse(response)
+
+
+class sonarAnalysis(View):
+    def post(self, request):
+        try:
+            payload = json.loads(request.body)
+            code = payload.get("code")
+            if not code:
+                return JsonResponse({'errcode': 1, 'message': "Missing 'code' field"})
+
+            SONAR_HOST_URL = "http://localhost:9000"
+            SONAR_TOKEN = "squ_ddf869197e0cba2f9758da042b7fb610bb22200e"
+            PROJECT_KEY = "test"
+            PROJECT_NAME = "TestProject"
+            PROJECT_VERSION = "1.0"
+
+            temp_dir = tempfile.mkdtemp()
+            try:
+                code_path = os.path.join(temp_dir, "your_code.py")
+                with open(code_path, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                prop_path = os.path.join(temp_dir, "sonar-project.properties")
+                with open(prop_path, "w", encoding="utf-8") as f:
+                    f.write(f"""sonar.projectKey={PROJECT_KEY}
+                    sonar.projectName={PROJECT_NAME}
+                    sonar.projectVersion={PROJECT_VERSION}
+                    sonar.sources=.
+                    sonar.host.url={SONAR_HOST_URL}
+                    sonar.login={SONAR_TOKEN}
+                    sonar.language=py
+                    sonar.sourceEncoding=UTF-8
+                    """)
+
+                # 使用SonarScanner
+                subprocess.run(["sonar-scanner"], cwd=temp_dir, check=True)
+
+                time.sleep(5)
+
+                metric_keys = ",".join([
+                    "bugs", "vulnerabilities", "code_smells",
+                    "reliability_rating", "security_rating", "sqale_rating",
+                    "coverage", "duplicated_lines_density", "ncloc",
+                    "complexity", "classes", "functions", "files"
+                ])
+                metric_response = requests.get(
+                    f"{SONAR_HOST_URL}/api/measures/component",
+                    headers={"Authorization": f"Bearer {SONAR_TOKEN}"},
+                    params={"component": PROJECT_KEY, "metricKeys": metric_keys}
+                )
+
+                issues_response = requests.get(
+                    f"{SONAR_HOST_URL}/api/issues/search",
+                    headers={"Authorization": f"Bearer {SONAR_TOKEN}"},
+                    params={
+                        "componentKeys": PROJECT_KEY,
+                        "types": "BUG,VULNERABILITY,CODE_SMELL",
+                        "resolved": "false",
+                        "ps": 100
+                    }
+                )
+
+                if metric_response.status_code == 200:
+                    metrics = metric_response.json().get("component", {}).get("measures", [])
+                    result = {m["metric"]: m["value"] for m in metrics}
+                else:
+                    return JsonResponse({'errcode': 2, 'data': f"获取指标失败: {metric_response.status_code} - {metric_response.text}"})
+
+                if issues_response.status_code == 200:
+                    issues_data = issues_response.json().get("issues", [])
+                    simplified_issues = [
+                        {
+                            "type": i["type"],
+                            "message": i["message"],
+                            "severity": i["severity"],
+                            "line": i.get("line"),
+                            "file": i["component"].split(":")[-1]
+                        }
+                        for i in issues_data
+                    ]
+                else:
+                    simplified_issues = []
+                string = "metrics:" + str(result) + "\n" + "issues:" + str(simplified_issues)
+                data = {
+                        'metrics': result,
+                        'issues': simplified_issues
+                    }
+                with open("tmp","w") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+
+                    
+                return JsonResponse({
+                    'errcode': 0,
+                    'data': data
+                })
+
+            except subprocess.CalledProcessError as e:
+                return JsonResponse({'errcode': 3, 'data': f"SonarScanner failed: {str(e)}"})
+            finally:
+                shutil.rmtree(temp_dir)
+
+        except Exception as e:
+            return JsonResponse({'errcode': 9, 'data': str(e)})

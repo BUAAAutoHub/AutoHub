@@ -91,6 +91,7 @@ urlpatterns = [
     path("api/develop/refreshRepo", userdevelop.RefreshRepo.as_view()),
     path("api/develop/assignCommitReviewer", userdevelop.AssignCommitReviewer.as_view()),
     path("api/develop/assignPrReviewer", userdevelop.AssignPrReviewer.as_view()),
+    path("api/develop/sonarAnalysis", userdevelop.sonarAnalysis.as_view()),
     path("api/register", userBasic.register),
     path("api/login", userBasic.login),
     path("api/getUserInfo", userBasic.get_user_information),
@@ -185,4 +186,6 @@ urlpatterns = [
     path("api/ai/summary", AI.SummarizeDiscussion.as_view()),
     path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
     path("api/ai/generateLabel", AI.GenerateLabelwithDiscription.as_view()),
+
+
 ]
