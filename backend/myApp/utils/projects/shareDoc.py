@@ -97,7 +97,7 @@ class UserCollectDocList(View):
 
 
 class AddDocToCollect(View):
-    def addDocToCollect(userId, projectId, docId):
+    def addDocToCollect(self, userId, projectId, docId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -137,7 +137,7 @@ class AddDocToCollect(View):
 
 
 class DelDocFromCollect(View):
-    def delDocFromCollect(userId, projectId, docId):
+    def delDocFromCollect(self, userId, projectId, docId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -174,7 +174,7 @@ class DelDocFromCollect(View):
 
 
 class UserCreateDoc(View):
-    def userCreateDoc(userId, projectId, name, outline, content, accessUserId):
+    def userCreateDoc(self, userId, projectId, name, outline, content, accessUserId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -226,7 +226,7 @@ class UserCreateDoc(View):
 
 
 class UserEditDocOther(View):
-    def userEditDocOther(userId, docId, projectId, name, accessUserId):
+    def userEditDocOther(self, userId, docId, projectId, name, accessUserId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -284,7 +284,7 @@ class UserEditDocOther(View):
 
 
 class UserEditDocContent(View):
-    def userEditDocContent(userId, docId, projectId, content):
+    def userEditDocContent(self, userId, docId, projectId, content):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -324,7 +324,7 @@ class UserEditDocContent(View):
 
 
 class UserGetDocLock(View):
-    def userGetDocLock(userId, projectId, docId):
+    def userGetDocLock(self, userId, projectId, docId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -368,7 +368,7 @@ class UserGetDocLock(View):
 
 class UserReleaseDocLock(View):
 
-    def userReleaseDocLock(userId, projectId, docId):
+    def userReleaseDocLock(self, userId, projectId, docId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -405,7 +405,7 @@ class UserReleaseDocLock(View):
 
 
 class UserDelDoc(View):
-    def userDelDoc(userId, projectId, docId):
+    def userDelDoc(self, userId, projectId, docId):
         """
         Date        :   2025/4/19
         Author      :   yanfan
@@ -441,7 +441,7 @@ class UserDelDoc(View):
 
 
 class DocTimeUpdate(View):
-    def docTimeUpdate(userId, projectId, docId, updateTime):
+    def docTimeUpdate(self, userId, projectId, docId, updateTime):
         """
         Date        :   2025/4/19
         Author      :   yanfan
