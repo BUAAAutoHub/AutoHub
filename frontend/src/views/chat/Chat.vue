@@ -36,6 +36,10 @@ export default {
             currentDeleteRoom: null,
             // 新增默认群聊名称状态
             defaultGroupName: '',
+            // 讨论室摘要生成
+            summaryDialog: false,
+            summaryContent: '',
+            summaryLoading: false
         }
     },
     inject: {
@@ -873,15 +877,29 @@ export default {
                                     </v-text-field>
                                 </div>
                             </div>                      </v-card-text>
-                      <v-expand-transition>
-                        <div v-if="chatRooms[selectedRoom].selectedUser !== null">
-                          <v-divider></v-divider>
-                          <v-card-actions>
-                            <v-avatar size="50px" class="mx-1"><v-img :src="getIdenticon(chatRooms[selectedRoom].selectedUser.userName, 50, 'user')"></v-img></v-avatar>
-                            <strong>{{chatRooms[selectedRoom].selectedUser.userName}}</strong>
-                            <strong>{{chatRooms[selectedRoom].selectedUser.userName === this.user.name ? '（您自己）' : ''}}</strong>
-                            <v-spacer></v-spacer>
-                            <v-btn v-if="chatRooms[selectedRoom].selectedUser.userName !== this.user.name" color="red" class="white--text" @click="expelSheet = !expelSheet"><v-icon>mdi-alert</v-icon>移除群聊</v-btn>
+
+                        <!-- 成员操作面板 -->
+                        <v-expand-transition>
+                            <div v-if="chatRooms[selectedRoom].selectedUser !== null">
+                                <v-divider></v-divider>
+                                <v-card-actions>
+                                    <v-avatar size="50" class="mx-1">
+                                        <v-img :src="getIdenticon(chatRooms[selectedRoom].selectedUser.userName, 50, 'user')"/>
+                                    </v-avatar>
+                                    <div>
+                                        <strong>{{ chatRooms[selectedRoom].selectedUser.userName }}</strong>
+                                        <span v-if="chatRooms[selectedRoom].selectedUser.userName === user.name">
+                                            （您自己）
+                                        </span>
+                                    </div>
+                                    <v-spacer></v-spacer>
+                                    <v-btn v-if="chatRooms[selectedRoom].selectedUser.userName !== user.name"
+                                          color="red"
+                                          class="white--text"
+                                          @click="expelSheet = true">
+                                        <v-icon left>mdi-alert</v-icon>
+                                        移除群聊
+                                    </v-btn>
                           </v-card-actions>
                         </div>
                       </v-expand-transition>
