@@ -185,6 +185,7 @@ urlpatterns = [
     path("api/ai/CodeReview", AI.GenerateCodeReview.as_view()),
     path("api/ai/unitTest", AI.GenerateUnitTest.as_view()),
     path("api/ai/summary", AI.SummarizeDiscussion.as_view()),
+    path("api/ai/saveqa", AI.SaveQAPairs.as_view()),
     path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
     path("api/ai/generateLabel", AI.GenerateLabelwithDiscription.as_view()),
 

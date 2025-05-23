@@ -550,8 +550,7 @@ class ShowAssistantProjects(View):
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
-
-        managerId = kwargs.get('managerId')
+        managerId = kwargs.get('teacherId')
         if not _is_Admin(managerId):
             return JsonResponse(BAD_PERM_RESP)
 

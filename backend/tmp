@@ -1,0 +1,13 @@
+{
+  "metrics": {
+    "reliability_rating": "1.0",
+    "code_smells": "0",
+    "duplicated_lines_density": "0.0",
+    "security_rating": "1.0",
+    "sqale_rating": "1.0",
+    "bugs": "0",
+    "files": "1",
+    "vulnerabilities": "0"
+  },
+  "issues": []
+}

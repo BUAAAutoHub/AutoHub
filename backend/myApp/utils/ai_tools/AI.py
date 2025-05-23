@@ -7,12 +7,10 @@ import json
 import datetime
 from djangoProject.settings import BASE_DIR
 from myApp.models import *
-from myApp.utils.projects.userdevelop import genResponseStateInfo, isUserInProject, isProjectExists, is_independent_git_repository, \
-    genUnexpectedlyErrorInfo, validate_token
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, SummarizationPipeline
-import nltk
-from nltk.tokenize import WordPunctTokenizer
 
+
+import re
 from myApp.models import *
 from myApp.utils.ai_tools.ai_utils import *
 from myApp.utils.projects.userChat import get_room_content_api
@@ -58,7 +56,14 @@ class PromptGenerateCode(View):
         
         text = kwargs.get("message")
 
-        reply = simple_llm_generate(text)
+        pre_prompt = "generate code with following instruction: "
+        post_prompt = "Your response must strictly follows rules below: " \
+            "1. you should only generate code without any other additional information" \
+            "2. your response must follow the format <start> code <end>"
+
+        reply = code_expert_generate(pre_prompt + text + post_prompt)
+
+        reply = ''.join(re.findall(r'<start>(.*?)<end>', reply, re.DOTALL))
 
         response = {'errcode': 0, 'reply': reply}
 
@@ -99,9 +104,15 @@ class GenerateUnitTest(View):
         
         text = kwargs.get("code")
 
-        conditional_prompt = "Please generate unit test for the following code: "
+        pre_prompt = "Please generate unit test for the following code: "
+        
+        post_prompt = "Your response must strictly follows rules below: " \
+            "1. you should only generate code without any other additional information" \
+            "2. your response must follow the format <start> code <end>" \
 
-        reply = simple_llm_generate(conditional_prompt + text)
+        reply = code_expert_generate(pre_prompt + text + post_prompt)
+
+        reply = ''.join(re.findall(r'<start>(.*?)<end>', reply, re.DOTALL))
 
         response = {'errcode': 0, 'reply': reply}
 
@@ -135,7 +146,7 @@ class SummarizeDiscussion(View):
         prompt_stage_1 = "Please summarize the following contexts briefly as possible"
         summary = simple_llm_generate(prompt_stage_1 + text)
 
-        response = {'errcode': 0, 'reply': summary}
+        
 
         prompt_stage_2 = "Given the summary of a discussion, you should refine and transform it by Question-Answer pair format. " \
         "We wish the response belikes multi-turns conversation, " \
@@ -145,10 +156,42 @@ class SummarizeDiscussion(View):
         qa_reply = simple_llm_generate(prompt_stage_2 + summary)
 
         qa_pairs = knowledge_formatting(qa_reply)
-        save_to_knowledge_database(pid, qa_pairs)
-
+        # save_to_knowledge_database(pid, qa_pairs)
+        print("#######")
+        print(qa_reply)
+        print("Get QA Pair", qa_pairs)
+        print("#######")
+        response = {'errcode': 0, 'reply': summary, 'qa_pairs':qa_pairs}
         return JsonResponse(response)
 
+
+class SaveQAPairs(View):
+    def post(self, request):
+        response = {'errcode': 1, 'message': "Save failed"}
+
+        try:
+            kwargs: dict = json.loads(request.body)
+        except Exception as e:
+            response['message'] = f"Invalid JSON: {str(e)}"
+            return JsonResponse(response)
+
+        try:
+            pid = kwargs.get("pid")
+            qa_pairs = kwargs.get("qa_pairs")
+            if not pid or not qa_pairs:
+                raise ValueError("Missing pid or qa_pairs")
+        except Exception as e:
+            response['message'] = f"Invalid keys: {str(e)}"
+            return JsonResponse(response)
+
+        try:
+            save_to_knowledge_database(pid, qa_pairs)
+        except Exception as e:
+            response['message'] = f"Database error: {str(e)}"
+            return JsonResponse(response)
+
+        response = {'errcode': 0, 'message': "Save successful"}
+        return JsonResponse(response)
 
 '''
     path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
@@ -181,7 +224,9 @@ class ChatWithProjectExpert(View):
         else:
             prefixs = context_decode(prefixs)
 
-        reply, context = memorized_llm_generate(text, prefixs)
+        pre_prompt = "Please refer to the previous discussion and generate corresponding answer for question: "
+
+        reply, context = memorized_llm_generate(pre_prompt + text, prefixs)
 
         response = {'errcode': 0, "reply": reply, "context": context_encode(context)}
         print(response)
@@ -315,5 +360,4 @@ class GenerateLabelwithDiscription(View):
 #         response['message'] = "success"
 #         response['data'] = chat["choices"][0]["message"]["content"]
 #         return JsonResponse(response)
-
 

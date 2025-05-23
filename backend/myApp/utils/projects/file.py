@@ -25,7 +25,7 @@ class uploadFile(View):
         response = getResp()
 
         # get project_id from post request
-        project_id = request.POST.get("project_id")
+        project_id = request.POST.get("projectId")
 
         # check if there is any project corresponding with the target project id
         if Project.objects.filter(id = project_id).count() == 0:
@@ -76,7 +76,7 @@ class downloadFile(View):
         except Exception:
             return JsonResponse(response)
 
-        project_id = kwargs.get("project_id", -1)
+        project_id = kwargs.get("projectId", -1)
         if Project.objects.filter(id=project_id).count() == 0:
             response = getResp(
                 errcode  = PROJECT_NOT_FOUND,
@@ -111,8 +111,7 @@ class watchFiles(View):
             kwargs: dict = json.loads(request.body)
         except Exception:
             return JsonResponse(response)
-
-        project_id = kwargs.get("project_id", -1)
+        project_id = kwargs.get("projectId", -1)
         if Project.objects.filter(id=project_id).count() == 0:
             response = getResp(
                 errcode  = PROJECT_NOT_FOUND,
