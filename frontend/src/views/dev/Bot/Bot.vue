@@ -7,6 +7,7 @@
             <div class="sidebar">
                 <el-menu default-active="bot" class="el-menu-vertical-demo" @select="handleNav">
                     <el-menu-item index="bot">Bot 绑定</el-menu-item>
+                    <el-menu-item index="check">项目检查</el-menu-item>
                     <el-menu-item index="rules">规则管理</el-menu-item>
                     <el-menu-item index="labels">标签管理</el-menu-item>
                     <el-menu-item index="logs">日志记录</el-menu-item>
@@ -29,7 +30,7 @@
                                     plain
                                     @click="editRule(scope.$index)"
                                     ></el-button> -->
-                        <el-button type="primary" @click="checkProject" plain :loading="checking">🔍 检查项目</el-button>
+                        <el-button type="primary" @click="checkProject" plain :loading="checking">🔍 一键检查项目</el-button>
                     </el-row>
                 
                     <!-- 未绑定 Bot 提示 -->
@@ -47,6 +48,14 @@
 
                     <!-- bot绑定 区块 -->
                     <el-card class="box-card" id="bot-section">
+                        <!-- 绑定提示 -->
+                        <el-alert
+                            v-if="botBound"
+                            title="该项目已绑定了 Bot"
+                            type="success"
+                            show-icon
+                            class="bot-bound-alert"
+                        ></el-alert>
                         <div slot="header" class="clearfix">
                         <span>Bot 绑定</span>
                         </div>
@@ -132,6 +141,65 @@
                         class="mt-2"
                         />
                     </el-card>
+
+                    <!-- Bot 检查 区块 -->
+                    <el-card class="box-card" id="bot-check" style="margin-top: 20px;">
+                    <div slot="header" class="clearfix">
+                        <span>Bot 检查</span>
+                    </div>
+
+                    <!-- 操作按钮行 -->
+                    <el-row :gutter="20" type="flex" justify="start" align="middle">
+                        <el-col :span="8">
+                        <el-button
+                            type="primary"
+                            size="small"
+                            icon="el-icon-document"
+                            @click="selectPrDialogVisible = true"
+                            :loading="checking"
+                            class="assistant-button"
+                        >
+                            选择 PR（已选 {{ selectedPrs.length }} ）
+                        </el-button>
+                        </el-col>
+
+                        <el-col :span="8">
+                        <el-button
+                            type="primary"
+                            size="small"
+                            icon="el-icon-s-order"
+                            @click="selectIssueDialogVisible = true"
+                            :loading="checking"
+                            class="assistant-button"
+                        >
+                            选择 Issue（已选 {{ selectedIssues.length }} ）
+                        </el-button>
+                        </el-col>
+
+                        <el-col :span="8">
+                        <el-button
+                            type="success"
+                            size="small"
+                            icon="el-icon-search"
+                            @click="partCheckProject"
+                            :loading="checking"
+                            :disabled="(selectedPrs.length === 0 && selectedIssues.length === 0) || checking"
+                        >
+                            提交选中项检查
+                        </el-button>
+                        </el-col>
+                    </el-row>
+
+                    <!-- 操作提示 -->
+                    <el-alert
+                        type="info"
+                        show-icon
+                        title="请先选择要检查的 PR 或 Issue，再点击检查按钮。"
+                        class="mt-3"
+                        :closable="false"
+                    />
+                    </el-card>
+
                 
                     <!-- Rules 区块 -->
                     <el-card class="box-card" id="rules-section">
@@ -184,13 +252,24 @@
                                     plain
                                     @click="editRule(scope.$index)"
                                     ></el-button>
-                                    <el-button
-                                    size="mini"
-                                    icon="el-icon-delete"
-                                    type="danger"
-                                    plain
-                                    @click="deleteRule(scope.$index)"
-                                    ></el-button>
+                                    <el-tooltip v-if="scope.row.default !== 1" content="删除规则">
+                                        <el-button
+                                            size="mini"
+                                            icon="el-icon-delete"
+                                            type="danger"
+                                            plain
+                                            @click="deleteRule(scope.$index)"
+                                        ></el-button>
+                                    </el-tooltip>
+                                    <el-tooltip v-else content="默认规则不可删除">
+                                        <el-button
+                                            size="mini"
+                                            icon="el-icon-delete"
+                                            type="danger"
+                                            plain
+                                            disabled
+                                        ></el-button>
+                                    </el-tooltip>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -222,13 +301,24 @@
                                     plain
                                     @click="editLabel(scope.$index)"
                                     ></el-button>
-                                    <el-button
-                                    size="mini"
-                                    icon="el-icon-delete"
-                                    type="danger"
-                                    plain
-                                    @click="deleteLabel(scope.$index)"
-                                    ></el-button>
+                                    <el-tooltip v-if="scope.row.default !== 1" content="删除标签">
+                                        <el-button
+                                            size="mini"
+                                            icon="el-icon-delete"
+                                            type="danger"
+                                            plain
+                                            @click="deleteLabel(scope.$index)"
+                                        ></el-button>
+                                    </el-tooltip>
+                                    <el-tooltip v-else content="默认标签不可删除">
+                                        <el-button
+                                            size="mini"
+                                            icon="el-icon-delete"
+                                            type="danger"
+                                            plain
+                                            disabled
+                                        ></el-button>
+                                    </el-tooltip>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -240,7 +330,7 @@
                             <span>日志记录</span>
                         </div>
                 
-                        <!-- todo：记录每一次检查项目的时间以及从后端返回的结果-->
+                        <!-- 记录每一次检查项目的时间以及从后端返回的结果-->
                         <el-empty v-if="!logs.length" description="暂无日志记录" />
                         <el-timeline>
                             <el-timeline-item
@@ -316,6 +406,25 @@
                             <el-button type="primary" @click="saveLabel" class="assistant-button">保存</el-button>
                         </div>
                     </el-dialog>
+
+                    <!-- 检查 PR 弹窗-->
+                    <el-dialog :visible.sync="selectPrDialogVisible" title="请选择要检查的 PR" width="800px">
+                        <PrList :selectedPrs.sync="selectedPrs" />
+
+                        <span slot="footer" class="dialog-footer">
+                            <el-button @click="selectPrDialogVisible = false">取消</el-button>
+                        </span>
+                    </el-dialog>
+
+                    <!-- 检查 ISSUE 弹窗-->
+                    <el-dialog :visible.sync="selectIssueDialogVisible" title="请选择要检查的 ISSUE" width="800px">
+                        <IssueList :selectedIssues.sync="selectedIssues" />
+
+                        <span slot="footer" class="dialog-footer">
+                            <el-button @click="selectIssueDialogVisible = false">取消</el-button>
+                        </span>
+                    </el-dialog>
+
                 </div>
             </div>
         </el-col>
@@ -325,8 +434,15 @@
 <script>
 import axios from "axios";
 import util from "@/views/util";
+import PrList from "./PrList.vue";
+import IssueList from "./IssueList.vue";
+
   export default {
     name: 'ProjectBot',
+    components: {
+        PrList,
+        IssueList
+    },
     data() {
       return {
         botBound: false,
@@ -368,7 +484,20 @@ import util from "@/views/util";
             message: '',
         },
         logs: [],
+
+        selectPrDialogVisible: false,
+        selectIssueDialogVisible: false,
+        selectedPrs: [],
+        selectedIssues: [],
       }
+    },
+    watch: {
+        selectedPrs(newVal) {
+            console.log('父组件selectedPrs变了', newVal);
+        },
+        selectedIssues(newVal) {
+            console.log('父组件selectedIssues变了', newVal);
+        }
     },
     methods: {
         isDuplicateRule(rule) {
@@ -380,6 +509,7 @@ import util from "@/views/util";
         handleNav(index) {
             const sectionMap = {
                 bot: 'bot-section',
+                check: 'bot-check',
                 rules: 'rules-section',
                 labels: 'labels-section',
                 logs: 'logs-section'
@@ -407,7 +537,7 @@ import util from "@/views/util";
                 return;
             }
 
-            if (this.isDuplicateRule(newLabel)) {
+            if (this.isDuplicateLabel(newLabel)) {
                 this.$message.error('已有相同名称的标签，请修改后再试');
                 return;
             }
@@ -521,6 +651,97 @@ import util from "@/views/util";
                 }
             } catch (err) {
                 this.$message.error(err+" 删除规则失败")
+            }
+        },
+        submitCheck() {
+            // if(this.selectedPrs.length === 0) {
+            //     this.$message.error('请至少选择一个 PR 进行检查');
+            //     return;
+            // }
+            this.loading = true;
+            const projId = this.$route.params.projid;
+            const repoId = this.$route.params.repoid;
+            axios.post('/api/bot/autoreview', {
+                projectId: projId,
+                repoId: repoId,
+            }).then((res) => {
+                if(res.data.errcode == 0) {
+                    const logEntry = {
+                        time: new Date().toLocaleString(),
+                        result: res.data.message || '检查完成，未发现问题！',
+                        success: res.data.errcode === 0,
+                        details: res.data.data || [] 
+                    };
+                    this.logs.unshift(logEntry);
+                    this.$message.success("检查成功");
+                } else {
+                    const logEntry = {
+                        time: new Date().toLocaleString(),
+                        result: '检查失败：ERR'+(res.data.errcode + " "+ res.data.message || '未知错误'),
+                        success: false,
+                        details: []
+                    };
+                    this.logs.unshift(logEntry);
+                    this.$message.error("检查失败"+logEntry.result)
+                }
+            }).catch((error) => {
+                const logEntry = {
+                    time: new Date().toLocaleString(),
+                    result: '检查失败：'+(error.message || '未知错误'),
+                    success: false,
+                    details: []
+                };
+                this.logs.unshift(logEntry);
+                this.$message.error(logEntry.result);
+            }).finally(() => {
+                this.loading = false;
+            });
+        },
+        async partCheckProject() {
+            this.checking = true
+            try {
+                const projId = this.$route.params.projid;
+                const repoId = this.$route.params.repoid;
+
+                const res = await axios.post('/api/bot/partreview', {
+                    projectId: projId,
+                    repoId: repoId,
+                    prs: this.selectedPrs.map(pr => pr.id),
+                    issues: this.selectedIssues.map(issue => issue.id)
+                });
+
+                console.log(this.selectedPrs.map(pr => pr.id), this.selectedIssues.map(issue => issue.id))
+
+                if(res.data.errcode == 0) {
+                    const logEntry = {
+                        time: new Date().toLocaleString(),
+                        result: res.data.message || '检查完成，未发现问题！',
+                        success: res.data.errcode === 0,
+                        details: res.data.data || [] 
+                    };
+                    this.logs.unshift(logEntry);
+                    this.$message.success(logEntry.result);
+                } else {
+                    const logEntry = {
+                        time: new Date().toLocaleString(),
+                        result: '检查失败：ERR'+(res.data.errcode + " "+ res.data.message || '未知错误'),
+                        success: false,
+                        details: []
+                    };
+                    this.logs.unshift(logEntry);
+                    this.$message.error(logEntry.result)
+                }   
+            } catch (error) {
+                const logEntry = {
+                    time: new Date().toLocaleString(),
+                    result: '检查失败：'+(error.message || '未知错误'),
+                    success: false,
+                    details: []
+                };
+                this.logs.unshift(logEntry);
+                this.$message.error(logEntry.result)
+            } finally {
+                this.checking = false;
             }
         },
         async checkProject() {
@@ -756,6 +977,12 @@ import util from "@/views/util";
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
+    }
+
+    .bot-bound-alert {
+        margin-bottom: 12px;
+        font-weight: 600;
+        font-size: 16px;
     }
 
     .sidebar {
