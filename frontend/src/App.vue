@@ -504,7 +504,10 @@
         </span>
       </el-dialog>
   
-      <AIChatAssistant :current-project-id="proj?.projectId || -1" />
+      <AIChatAssistant 
+        v-if="!['/login', '/register'].includes($route.path)"
+        :current-project-id="proj?.projectId || -1" 
+        />
     </v-app>
   </template>
   

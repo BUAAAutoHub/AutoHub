@@ -72,6 +72,8 @@ export default {
   },
   data() {
     return {
+      generatedLink: '',     // 新增：存储生成的链接
+      shareDialog: false,    // 新增：控制对话框显示
       lineNumbers: true,
       readonlyType:true,
       branchName: '',
@@ -261,6 +263,20 @@ export default {
           return '其他项目人员'
         }
       },
+      generateShareLink() {
+            // 直接获取当前页面完整URL
+            this.generatedLink = window.location.href;
+            this.shareDialog = true;
+        },
+        copyLink() {
+            navigator.clipboard.writeText(this.generatedLink).then(() => {
+                this.$message.success('链接已复制到剪贴板');
+                this.shareDialog = false;
+            }).catch(err => {
+                console.error('复制失败:', err);
+                this.$message.error('复制失败，请手动复制');
+            });
+        },
   }
 }
 </script>
@@ -269,7 +285,54 @@ export default {
   <div v-if="getCommitDetailBusy" v-loading="getCommitDetailBusy"></div>
   <div style="margin: 15px" v-else>
     <el-page-header @back="goBack" content="commit评审" style="margin-top: 40px"></el-page-header>
-    <h1 style="margin-top: 20px; margin-left: 20px; margin-bottom: 20px">Commit</h1>
+
+    <v-row class="align-center" style="margin: 20px 0 20px 20px">
+        <!-- 左侧标题 -->
+        <h1 style="margin: 0; font-size: 24px">Commit</h1>
+        
+        <!-- 右侧按钮 -->
+        <el-button 
+        type="primary" 
+        @click="generateShareLink"
+        style="
+            margin-left: 30px;  /* 增加左边距 */
+            padding: 8px 12px;  /* 调整内边距 */
+            min-width: auto;    /* 取消最小宽度限制 */
+        "
+        >
+        <i class="el-icon-share"></i> 
+        <span style="margin-left: 5px">生成分享链接</span>
+        </el-button>
+    </v-row>
+
+    <!-- 分享链接 -->
+    <el-dialog title="分享Commit评审" :visible.sync="shareDialog" width="40%">
+        <el-form>
+            <el-form-item label="分享链接">
+                <div class="copy-link-row">
+                    <el-input 
+                    v-model="generatedLink" 
+                    readonly
+                    class="flex-grow"
+                    />
+                    <v-tooltip bottom>
+                    <template v-slot:activator="{ on }">
+                        <v-btn 
+                        icon
+                        @click="copyLink"
+                        class="ml-2"
+                        v-on="on"
+                        >
+                        <v-icon>mdi-content-copy</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>复制链接</span>
+                    </v-tooltip>
+                </div>
+                </el-form-item>
+        </el-form>
+        </el-dialog>
+
     <div style="margin-bottom: 10px; margin-left: 20px; display: inline-block">
       <v-chip :color="getColor(this.commitDetails.status)" dark v-if="this.getCommitDetailBusy === false">
         {{ transform(this.commitDetails.status) }}
@@ -408,5 +471,39 @@ export default {
 
 .code-diff-view {
   overflow: hidden;
+}
+
+/* 强制让 append 成为 flex 容器 */
+.share-link-input >>> .el-input-group__append {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 8px !important;
+  white-space: nowrap !important;
+  background: #f5f7fa; /* 可选：确保背景和输入框一致 */
+}
+
+/* 修复按钮尺寸 */
+.share-link-input >>> .v-btn {
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: normal !important;
+}
+
+/* tooltip 默认生成 span，有时会被当 block 处理 */
+.share-link-input >>> .v-tooltip {
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.copy-link-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.copy-link-row .flex-grow {
+  flex-grow: 1;
 }
 </style>

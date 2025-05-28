@@ -17,14 +17,6 @@
                     <!-- 分享链接 -->
                     <el-dialog title="分享PR" :visible.sync="shareDialog" width="40%">
                         <el-form>
-                            <el-form-item label="链接名称">
-                            <el-input 
-                                v-model="customLinkName" 
-                                placeholder="给我的分享链接起个名字"
-                                maxlength="20"
-                                show-word-limit
-                            ></el-input>
-                            </el-form-item>
                             <el-form-item label="分享链接">
                                 <div class="copy-link-row">
                                     <el-input 
@@ -374,54 +366,18 @@ export default {
 
         // 生成分享链接
         generateShareLink() {
-            const projectId = this.getProjectId();
-            const projectName = (this.selectedProj && this.selectedProj.projectName) || '未知项目';
-            const userId = this.getUserId();
-
-            if (!projectId) {
-                this.$message.error('无法获取项目ID');
-                return;
-            }
-                if (!userId) {
-                this.$message.error('无法获取用户ID');
-                return;
-            }
-
-            // 生成默认链接名称
-            const defaultName = `${this.selectedProj.projectName}_PR链接`;
-            this.customLinkName = this.customLinkName || defaultName;
-            
-            // 生成友好URL
-            const slug = this.slugify(this.customLinkName);
-            
-            // 新链接格式：/share/pr/[userid]/[projectid]-[slug]
-            this.generatedLink = `${window.location.origin}/share/pr/${userId}/${projectId}/${slug}`;
-            
+            // 直接获取当前页面完整URL
+            this.generatedLink = window.location.href;
             this.shareDialog = true;
         },
-
-        // 复制链接（增强兼容性）
-        async copyLink() {
-            try {
-            if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(this.generatedLink)
-            } else {
-            const input = document.createElement('input')
-            input.value = this.generatedLink
-            document.body.appendChild(input)
-            input.select()
-            document.execCommand('copy')
-            document.body.removeChild(input)
-            }
-
-            this.copySuccess = true
-            setTimeout(() => {
-            this.copySuccess = false
-            }, 2000)
-        } catch (err) {
-            console.error('复制失败:', err)
-            this.$message.error('复制失败，请手动复制链接')
-        }
+        copyLink() {
+            navigator.clipboard.writeText(this.generatedLink).then(() => {
+                this.$message.success('链接已复制到剪贴板');
+                this.shareDialog = false;
+            }).catch(err => {
+                console.error('复制失败:', err);
+                this.$message.error('复制失败，请手动复制');
+            });
         },
         getTopicColor: topicSetting.getColor,
         getRadialGradient: topicSetting.getRadialGradient,

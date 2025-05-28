@@ -31,6 +31,8 @@
             const isAllTask = route.path.includes('/allTask');
             const isNewPR = route.path.includes('/newPR');
             const isBranchDetail = route.path.includes('/dev'); 
+            const isPRReview = route.path.includes('/prReview'); 
+            const isCommitReview = route.path.includes('/commitReview'); 
 
             // 生成智能名称规则
             let defaultName = '';
@@ -43,6 +45,12 @@
                 source = 'newpr';
             } else if (isBranchDetail) { // 分支详情页逻辑
                 defaultName = this.generateBranchChatName();
+                source = 'branch';
+            } else if (isPRReview) {
+                defaultName = this.generatePRChatName();
+                source = 'branch';
+            } else if (isCommitReview) {
+                defaultName = this.generateCommitChatName();
                 source = 'branch';
             }
 
@@ -81,7 +89,7 @@
                 return `${cleanName}_projectDiscussion_${dateStr}`
             },
 
-            // 为newPR界面生成名称（需在PR界面添加路由判断）
+            // 为PR界面生成名称
             generatePRChatName() {
                 const baseName = this.selectedProj?.projectName || '当前项目'
                 // const prTitle = this.$route.query.title?.substring(0, 15) || '代码评审'
@@ -93,6 +101,16 @@
                     .replace(/\//g, '')
                 
                 return `PR_${baseName}_${dateStr}`
+            },
+            // 为Commit界面生成名称
+            generateCommitChatName() {
+                const baseName = this.selectedProj?.projectName || '当前项目'
+                
+                const dateStr = new Date()
+                    .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+                    .replace(/\//g, '')
+                
+                return `Commit_${baseName}_${dateStr}`
             },
             generateBranchChatName() {
                 const baseName = this.selectedProj?.projectName || '当前项目';
