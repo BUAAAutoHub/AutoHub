@@ -28,7 +28,8 @@ export default {
       ],
       prsBusy: true,
     }
-  }, methods: {
+  }, 
+    methods: {
       updatePR() {
           this.prsBusy = true
           axios.post('/api/develop/getPrList', {

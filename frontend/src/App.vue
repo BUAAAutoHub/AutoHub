@@ -119,9 +119,59 @@
             </v-card>
   
           </v-menu>
+
+            <v-tab link to="/dev" style="font-size: 24px;">
+                <!-- <v-icon large>mdi-microsoft-visual-studio-code</v-icon> -->
+                <span>代码</span>
+            </v-tab>
+
+            <v-menu :open-on-hover="true" :close-on-click="false" :close-on-content-click="false"
+            transition="scroll-y-transition" v-if="user.projects.length" offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn text v-bind="attrs" v-on="on">
+                <span style="font-size: 24px;">评审</span>
+                <v-icon v-if="attrs['aria-expanded'] === 'false'" right>
+                  mdi-menu-down
+                </v-icon>
+                <v-icon v-else>
+                  mdi-menu-up
+                </v-icon>
+              </v-btn>
+            </template>
   
+            <v-card min-width="200px">
+              <v-list class="grey lighten-3">
+                  <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/commitReview'">
+                    <v-list-item-avatar>
+                      <v-icon :color="getDarkColor(user.topic)">mdi-account-edit</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>Commit评审</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/prReview'">
+                  <v-list-item-avatar>
+                    <v-icon :color="getDarkColor(user.topic)">mdi-palette-outline</v-icon>
+                  </v-list-item-avatar>
+                  <v-list-item-content>
+                    <v-list-item-title>PR评审</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+                <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/newPR'">
+                  <v-list-item-avatar>
+                    <v-icon :color="getDarkColor(user.topic)">mdi-check-circle-outline</v-icon>
+                  </v-list-item-avatar>
+                  <v-list-item-content>
+                    <v-list-item-title>新建PR</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list>
+            </v-card>
   
-          <v-menu :open-on-hover="true" :close-on-click="false" :close-on-content-click="false"
+          </v-menu>
+
+
+          <!-- <v-menu :open-on-hover="true" :close-on-click="false" :close-on-content-click="false"
             transition="scroll-y-transition" v-if="user.projects.length" offset-y>
             <template v-slot:activator="{ on, attrs }">
               <v-btn text v-bind="attrs" v-on="on">
@@ -176,27 +226,17 @@
                           <v-list-item-title>新建PR</v-list-item-title>
                         </v-list-item-content>
                       </v-list-item>
-                      <!-- <v-list-item link :to="'/newIssue'" style="padding-left: 30px">
+                       <v-list-item link :to="'/newIssue'" style="padding-left: 30px">
                         <v-list-item-avatar>
                           <v-icon :color="getDarkColor(user.topic)">mdi-check-circle-outline</v-icon>
                         </v-list-item-avatar>
                         <v-list-item-content>
                           <v-list-item-title>新建Issue</v-list-item-title>
                         </v-list-item-content>
-                      </v-list-item> -->
+                      </v-list-item> 
                     </div>
                   </v-expand-transition>
                 </v-list-item-group>
-  
-  
-                <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/dev'">
-                  <v-list-item-avatar>
-                    <v-icon :color="getDarkColor(user.topic)">mdi-microsoft-visual-studio-code</v-icon>
-                  </v-list-item-avatar>
-                  <v-list-item-content>
-                    <v-list-item-title>代码</v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
   
                 <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/user/ai/diagnosis'">
                   <v-list-item-avatar>
@@ -215,18 +255,18 @@
                     <v-list-item-title>生成测试数据</v-list-item-title>
                   </v-list-item-content>
                 </v-list-item>
-                <!-- <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/user/database'">
+                 <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/user/database'">
                   <v-list-item-avatar>
                     <v-icon :color="getDarkColor(user.topic)">mdi-database</v-icon>
                   </v-list-item-avatar>
                   <v-list-item-content>
                     <v-list-item-title>团队数据库</v-list-item-title>
                   </v-list-item-content>
-                </v-list-item> -->
+                </v-list-item> 
               </v-list>
             </v-card>
   
-          </v-menu>
+          </v-menu> -->
   
           <v-menu :open-on-hover="true" :close-on-click="false" :close-on-content-click="false"
             transition="scroll-y-transition" v-if="user.projects.length" offset-y>
@@ -281,6 +321,19 @@
             </v-card>
   
           </v-menu>
+
+            <v-tab link to="/user/database" style="font-size: 24px;">
+                <span>团队数据库</span>
+            </v-tab>
+
+            <!-- <v-list-item :style="'color: ' + getDarkColor(user.topic)" link :to="'/user/database'">
+                  <v-list-item-avatar>
+                    <v-icon :color="getDarkColor(user.topic)">mdi-database</v-icon>
+                  </v-list-item-avatar>
+                  <v-list-item-content>
+                    <v-list-item-title>团队数据库</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>  -->
           <!-- <v-tabs v-model="routeSelect"> -->
           <!-- <v-tab link to="/allProject/">项目</v-tab> -->
           <!-- <v-tab link to="/allProject/allTask/">Plan</v-tab>

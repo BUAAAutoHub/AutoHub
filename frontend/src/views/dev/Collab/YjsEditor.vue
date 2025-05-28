@@ -17,7 +17,7 @@ import CodeMirror from 'codemirror'
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 import { CodemirrorBinding } from 'y-codemirror'
-// 引入语言 mode
+
 import 'codemirror/mode/javascript/javascript.js'
 import 'codemirror/mode/python/python.js'
 import 'codemirror/mode/markdown/markdown.js'
@@ -32,196 +32,204 @@ import 'codemirror/addon/hint/show-hint.css'
 
 
 export default {
-  props: {
-      userName: {
-          type: String,
-          default: '用户'
-      },
-      roomName: {
-          type: String,
-          required: true
-      },
-      initialCode: {
-          type: String,
-          default: ''
-      },
-      isHost: {
-          type: Boolean,
-          default: false
-      }
-  },
-  data() {
-    return {
-      provider: null,
-      ydoc: null,
-      ytext: null,
-      yMap: null,
-      editor: null,
-      connectionStatus: 'Disconnect',
-      selectedLanguage: 'javascript',
-      languages: [
-          { label: 'JavaScript', value: 'javascript' },
-          { label: 'Python', value: 'python' },
-          { label: 'Markdown', value: 'markdown' },
-          { label: 'HTML', value: 'htmlmixed' },
-          { label: 'CSS', value: 'css' },
-          { label: 'Java', value: 'text/x-java' },
-          { label: 'C++', value: 'text/x-c++src' },
-      ],
-    }
-  },
-  created() {
-      console.log('Room name:', this.roomName)
-      console.log('Initial Code:', this.initialCode)
-      console.log('Is Host:', this.isHost)
-  },
-  mounted() {
-      this.$nextTick(() => {
-          this.initEditor()
-      })
-  },
-  beforeDestroy() {
-    if (this.provider) {
-      this.provider.disconnect()
-    }
-  },
-  methods: {
-      // 获取编辑器内容
-      getEditorContent() {
-          return this.editor.getValue();
-      },
-      getEditorSelection() {
-          return this.editor.getSelection();
-      },
-      initEditor() {
-          console.log('Initializing editor... host:', this.isHost)
-          // Initialize Yjs document and WebSocket provider
-          this.ydoc = new Y.Doc()
-          this.provider = new WebsocketProvider(
-          'wss://demos.yjs.dev/ws', // Use the public WebSocket server
-          this.roomName,
-          this.ydoc
-          )
+    props: {
+        userName: {
+            type: String,
+            default: '用户'
+        },
+        roomName: {
+            type: String,
+            required: true
+        },
+        initialCode: {
+            type: String,
+            default: ''
+        },
+        isHost: {
+            type: Boolean,
+            default: false
+        }
+    },
+    data() {
+        return {
+        provider: null,
+        ydoc: null,
+        ytext: null,
+        yMap: null,
+        editor: null,
+        connectionStatus: 'Disconnect',
+        selectedLanguage: 'javascript',
+        loadedHints: new Set(),
+        languages: [
+            { label: 'JavaScript', value: 'javascript' },
+            { label: 'Python', value: 'python' },
+            { label: 'Markdown', value: 'markdown' },
+            { label: 'HTML', value: 'htmlmixed' },
+            { label: 'CSS', value: 'css' },
+            { label: 'Java', value: 'text/x-java' },
+            { label: 'C++', value: 'text/x-c++src' },
+        ],
+        }
+    },
+    created() {
+        console.log('Room name:', this.roomName)
+        console.log('Initial Code:', this.initialCode)
+        console.log('Is Host:', this.isHost)
+    },
+    mounted() {
+        this.$nextTick(() => {
+            this.initEditor()
+        })
+    },
+    beforeDestroy() {
+        if (this.provider) {
+        this.provider.disconnect()
+        }
+    },
+    methods: {
+        // 获取编辑器内容
+        getEditorContent() {
+            return this.editor.getValue();
+        },
+        getEditorSelection() {
+            return this.editor.getSelection();
+        },
+        initEditor() {
+            console.log('Initializing editor... host:', this.isHost)
+            // Initialize Yjs document and WebSocket provider
+            this.ydoc = new Y.Doc()
+            this.provider = new WebsocketProvider(
+            'wss://demos.yjs.dev/ws', // Use the public WebSocket server
+            this.roomName,
+            this.ydoc
+            )
 
-          // 设置本地用户的颜色
-          const randomColor = this.getNiceColor()
-          this.provider.awareness.setLocalStateField('user', {
-              name: this.userName,
-              color: randomColor,
-              isHost: this.isHost,
-          })
+            // 设置本地用户的颜色
+            const randomColor = this.getNiceColor()
+            this.provider.awareness.setLocalStateField('user', {
+                name: this.userName,
+                color: randomColor,
+                isHost: this.isHost,
+            })
 
-          // 监听 awareness 更新
-          this.provider.awareness.on('change', this.handleAwarenessChange)
-  
-          // Initialize Yjs text and binding to CodeMirror
-          this.ytext = this.ydoc.getText('codemirror')
-          this.yMap = this.ydoc.getMap(this.roomName)
+            // 监听 awareness 更新
+            this.provider.awareness.on('change', this.handleAwarenessChange)
+    
+            // Initialize Yjs text and binding to CodeMirror
+            this.ytext = this.ydoc.getText('codemirror')
+            this.yMap = this.ydoc.getMap(this.roomName)
 
-          if(this.isHost) {
-              const alreadyInitialized = sessionStorage.getItem('initialized_' + this.roomName);
+            if(this.isHost) {
+                const alreadyInitialized = sessionStorage.getItem('initialized_' + this.roomName);
 
-              if (!alreadyInitialized) {
-                  this.ytext.insert(0, this.initialCode);
-                  this.yMap.set('initialized', true);
-                  sessionStorage.setItem('initialized_' + this.roomName, 'true');
-              }
+                if (!alreadyInitialized) {
+                    this.ytext.insert(0, this.initialCode);
+                    this.yMap.set('initialized', true);
+                    sessionStorage.setItem('initialized_' + this.roomName, 'true');
+                }
 
-          }
+            }
 
-          this.editor = CodeMirror(this.$refs.editorContainer, {
-          mode: this.selectedLanguage,
-          lineNumbers: true,
-          lineWrapping: true,
-          extraKeys: {
-              'Ctrl-Space': 'autocomplete', // 按 Ctrl+Space 弹出补全
-              'Cmd-Space': 'autocomplete'   // macOS 支持
-          },
-              hintOptions: {
-              completeSingle: false // 不自动选中唯一结果（更自然）
-              }
-          })
+            this.editor = CodeMirror(this.$refs.editorContainer, {
+                mode: this.selectedLanguage,
+                lineNumbers: true,
+                lineWrapping: true,
+                extraKeys: {
+                    'Ctrl-Space': 'autocomplete', // 按 Ctrl+Space 弹出补全
+                    'Cmd-Space': 'autocomplete'   // macOS 支持
+                },
+                hintOptions: {
+                completeSingle: false // 不自动选中唯一结果（更自然）
+                }
+            });
 
-          // ✅ 输入时自动触发补全（可选）
-          this.editor.on('inputRead', (cm, change) => {
-              if (change.text[0].match(/[\w.]/)) {
-              cm.showHint()
-              }
-          })
+            // ✅ 输入时自动触发补全（可选）
+            this.editor.on('inputRead', (cm, change) => {
+                if (change.text[0].match(/[\w.]/)) {
+                    cm.showHint()
+                }
+            });
 
-          this.$refs.editorContainer.editorInstance = this.editor
-      
-          new CodemirrorBinding(this.ytext, this.editor, this.provider.awareness)
-      },
+            this.$refs.editorContainer.editorInstance = this.editor
+        
+            new CodemirrorBinding(this.ytext, this.editor, this.provider.awareness)
 
-      async changeLanguage() {
-          this.editor.setOption('mode', this.selectedLanguage)
-          // 根据语言动态加载对应的 hint 插件
-          switch (this.selectedLanguage) {
-              case 'javascript':
-                  await import('codemirror/addon/hint/javascript-hint.js')
-                  break
-                  case 'python':
-                  // 无官方的hint
-                  break
-                  case 'htmlmixed':
-                  await import('codemirror/addon/hint/html-hint.js')
-                  break
-                  case 'css':
-                  await import('codemirror/addon/hint/css-hint.js')
-                  break
-                  case 'markdown':
-                  // 没有标准的 markdown-hint，可以跳过或者自定义
-                  break
-                  case 'text/x-java':
-                  case 'text/x-c++src':
-                  // 没有官方 hint，可能需要自己实现或跳过
-                  break
-                  default:
-                  break
-          }
-      },
-      
+            // 初始化时触发一次自动加载hints插件
+            this.changeLanguage()
+        },
 
-      handleAwarenessChange() {
-          const states = this.provider.awareness.getStates()
-          const users = {}
-          states.forEach((state, clientID) => {
-              if (state.user) {
-                  users[clientID] = state.user
-              }
-          })
-          this.$emit('update-users', users)
-      },
-      getNiceColor() {
-          const hue = Math.floor(Math.random() * 360); // 色相随机
-          const saturation = 70 + Math.random() * 30;  // 饱和度 70%~100%
-          const lightness = 60 + Math.random() * 10;   // 亮度 60%~70%
-          return this.hslToHex(hue, saturation, lightness);
-      },
-      hslToHex(h, s, l) {
-          s /= 100;
-          l /= 100;
+        async changeLanguage() {
+            this.editor.setOption('mode', this.selectedLanguage)
+            if(this.loadedHints.has(this.selectedLanguage)) {
+                return
+            }
+            // 根据语言动态加载对应的 hint 插件
+            switch (this.selectedLanguage) {
+                case 'javascript':
+                    await import('codemirror/addon/hint/javascript-hint.js')
+                    break
+                    case 'python':
+                    // 无官方的hint
+                    break
+                    case 'htmlmixed':
+                    await import('codemirror/addon/hint/html-hint.js')
+                    break
+                    case 'css':
+                    await import('codemirror/addon/hint/css-hint.js')
+                    break
+                    case 'markdown':
+                    // 没有标准的 markdown-hint，可以跳过或者自定义
+                    break
+                    case 'text/x-java':
+                    case 'text/x-c++src':
+                    // 没有官方 hint，可能需要自己实现或跳过
+                    break
+                    default:
+                    break
+            }
+            this.loadedHints.add(this.selectedLanguage);
+        },
+        
 
-          const k = n => (n + h / 30) % 12;
-          const a = s * Math.min(l, 1 - l);
-          const f = n =>
-          Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+        handleAwarenessChange() {
+            const states = this.provider.awareness.getStates()
+            const users = {}
+            states.forEach((state, clientID) => {
+                if (state.user) {
+                    users[clientID] = state.user
+                }
+            })
+            this.$emit('update-users', users)
+        },
+        getNiceColor() {
+            const hue = Math.floor(Math.random() * 360); // 色相随机
+            const saturation = 70 + Math.random() * 30;  // 饱和度 70%~100%
+            const lightness = 60 + Math.random() * 10;   // 亮度 60%~70%
+            return this.hslToHex(hue, saturation, lightness);
+        },
+        hslToHex(h, s, l) {
+            s /= 100;
+            l /= 100;
 
-          return `#${[f(0), f(8), f(4)]
-          .map(x => x.toString(16).padStart(2, '0'))
-          .join('')}`;
-      },
-      toggleConnection() {
-          if (this.provider.shouldConnect) {
-              this.provider.disconnect()
-              this.connectionStatus = 'Connect'
-          } else {
-              this.provider.connect()
-              this.connectionStatus = 'Disconnect'
-          }
-      },
-  },
+            const k = n => (n + h / 30) % 12;
+            const a = s * Math.min(l, 1 - l);
+            const f = n =>
+            Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+
+            return `#${[f(0), f(8), f(4)]
+            .map(x => x.toString(16).padStart(2, '0'))
+            .join('')}`;
+        },
+        toggleConnection() {
+            if (this.provider.shouldConnect) {
+                this.provider.disconnect()
+                this.connectionStatus = 'Connect'
+            } else {
+                this.provider.connect()
+                this.connectionStatus = 'Disconnect'
+            }
+        },
+    },
 }
 </script>
 

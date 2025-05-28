@@ -75,7 +75,7 @@ export default {
                 </v-col>
                 <v-col cols="12" sm="12" md="6" lg="6" xl="6" class="ma-auto">
                   <v-card height="200px" :style="getRadialGradient(user.topic)" raised class="pa-2 overflow-y-auto">
-                    <v-card-title>和并请求</v-card-title>
+                    <v-card-title>合并请求</v-card-title>
                     <v-card-text>
                       <pr_view />
                     </v-card-text>
