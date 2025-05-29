@@ -23,13 +23,6 @@
                     <!-- 标题栏 -->
                     <el-row justify="space-between" type="flex" class="header">
                         <h2>项目 Bot 管理</h2>
-                        <!-- <el-button
-                                    size="mini"
-                                    icon="el-icon-edit"
-                                    type="primary"
-                                    plain
-                                    @click="editRule(scope.$index)"
-                                    ></el-button> -->
                         <el-button type="primary" @click="checkProject" plain :loading="checking">🔍 一键检查项目</el-button>
                     </el-row>
                 
@@ -56,9 +49,16 @@
                             show-icon
                             class="bot-bound-alert"
                         ></el-alert>
-                        <div slot="header" class="clearfix">
+                        <!-- <div slot="header" class="clearfix">
                         <span>Bot 绑定</span>
+                        </div> -->
+                        <div slot="header" class="clearfix" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Bot 绑定</span>
+                            <el-tooltip content="查看绑定说明" placement="top">
+                                <el-button icon="el-icon-info" circle size="mini" @click="botInfoVisible = true" />
+                            </el-tooltip>
                         </div>
+
 
                         <!-- 输入 token -->
                         <el-form :inline="true" :model="form" class="bot-control">
@@ -115,18 +115,6 @@
                                 </el-button>
                                 </el-tooltip>
                             </el-form-item>
-
-                            <!-- 删除 Bot -->
-                            <!-- <el-form-item v-if="botBound">
-                                <el-button
-                                type="danger"
-                                icon="el-icon-delete"
-                                @click="removeBot"
-                                plain
-                                >
-                                移除
-                                </el-button>
-                            </el-form-item> -->
 
                         </el-form>
 
@@ -425,6 +413,58 @@
                         </span>
                     </el-dialog>
 
+                    <!--Bot 绑定说明弹窗-->
+                    <el-dialog title="🔧 Bot 绑定说明" :visible.sync="botInfoVisible" width="800px">
+
+                        <div class="rule-content" style="line-height: 1.6; font-size: 14px; color: #333; ">
+        <h3>必要的最小权限</h3>
+        <ol>
+          <li>
+            <strong><code>repo</code> 权限（完整仓库访问权限）</strong><br />
+            包含的子权限：<br />
+            <ul>
+              <li><code>repo:status</code>（仓库状态）</li>
+              <li><code>repo_deployment</code>（部署）</li>
+              <li><code>public_repo</code>（如果仅限公开仓库）</li>
+            </ul>
+          </li>
+          <li>
+            <strong><code>write:discussion</code>（管理 Issue/PR 评论权限）</strong><br />
+          </li>
+          <li>
+            <strong><code>admin:org</code>（组织级别标签管理权限）</strong><br />
+            如果仓库属于某个组织，且需要管理组织级别的标签，可能需要此权限（但通常 <code>repo</code> 权限已足够）。
+          </li>
+        </ol>
+
+        <h3>推荐 Token 权限</h3>
+        <p><strong>作用范围（Scopes）：</strong></p>
+        <ul>
+          <li><code>repo</code>（完全控制仓库，包括 Issues 和 PRs）</li>
+          <li><code>write:discussion</code>（如果仅需要评论，但 <code>repo</code> 已包含该权限）</li>
+        </ul>
+
+        <h3>如何生成 Token</h3>
+        <ol>
+          <li>进入 GitHub 设置 → <strong>Developer settings</strong> → <strong>Personal access tokens (PAT)</strong>。</li>
+          <li>点击 <strong>Generate new token</strong>。</li>
+          <li>填写描述（如 <code>Issue/PR Comment & Label</code>）。</li>
+          <li>选择权限：
+            <ul>
+              <li>推荐选择 <code>repo</code>（涵盖 Issues 和 PRs 的读写权限）</li>
+              <li>或者仅选择 <code>public_repo</code>（仅限公开仓库）和 <code>write:discussion</code>（评论权限）。</li>
+            </ul>
+          </li>
+          <li>点击 <strong>Generate token</strong>，并 <strong>妥善保存</strong>（关闭后无法再次查看）。</li>
+        </ol>
+      </div>
+
+                        <span slot="footer" class="dialog-footer">
+                            <el-button @click="botInfoVisible = false">关闭</el-button>
+                        </span>
+                    </el-dialog>
+
+
                 </div>
             </div>
         </el-col>
@@ -445,6 +485,7 @@ import IssueList from "./IssueList.vue";
     },
     data() {
       return {
+        botInfoVisible: false,
         botBound: false,
         botEnabled: true,
         botToken: '',
@@ -1020,5 +1061,73 @@ import IssueList from "./IssueList.vue";
     .box-card {
         margin: 10px 0;
     }
+
+    /* 弹窗整体自定义宽高和字体 */
+.rule-dialog .el-dialog__body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  color: #2c3e50;
+  line-height: 1.7;
+  /* padding: 20px 30px; */
+  background-color: #f9fafd;
+}
+
+/* 标题样式 */
+.rule-content h3 {
+  font-weight: 700;
+  font-size: 18px;
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+  color: #34495e;
+  border-left: 4px solid #409EFF; /* Element UI 主色作为强调条 */
+  padding-left: 10px;
+  user-select: none;
+}
+
+/* 有序列表 */
+.rule-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1.2em;
+  color: #4a4a4a;
+}
+
+/* 无序列表 */
+.rule-content ul {
+  padding-left: 1.2em;
+  margin-top: 0.3em;
+  margin-bottom: 1em;
+  list-style-type: disc;
+  color: #5a5a5a;
+}
+
+/* 列表项段落间距 */
+.rule-content ol > li,
+.rule-content ul > li {
+  margin-bottom: 0.6em;
+}
+
+/* 代码块样式 */
+.rule-content code {
+  background-color: #e6f2ff;
+  color: #096dd9;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Source Code Pro', monospace, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  user-select: text;
+}
+
+/* 段落间距 */
+.rule-content p {
+  margin: 0.3em 0 0.8em;
+  color: #3c3c3c;
+}
+
+/* 弹窗底部按钮 */
+.dialog-footer {
+  text-align: right;
+  padding: 10px 30px 20px;
+}
+
 </style>
   
