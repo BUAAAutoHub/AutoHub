@@ -39,7 +39,11 @@ export default {
             // 讨论室摘要生成
             summaryDialog: false,
             summaryContent: '',
-            summaryLoading: false
+            summaryLoading: false,
+            qaPairs: [], // 新增 QA 对存储
+            editingQA: null, // 当前编辑的 QA 索引
+            savingQA: false, // 保存加载状态
+            newQA: { question: '', answer: '' } // 新增 QA 临时存储
         }
     },
     inject: {
@@ -518,16 +522,49 @@ export default {
                 })
                 
                 if (res.data && res.data.reply) {
-                    this.summaryContent = res.data.reply
+                    this.summaryContent = res.data.reply;
+                    this.qaPairs = res.data.qa_pairs || []; // 新增此行
                     this.summaryDialog = true
                 } else {
                     throw new Error(res.data.message)
                 }
             } catch (error) {
-                
                 this.$message.error('生成摘要失败: ' + error.message)
             } finally {
                 this.summaryLoading = false
+            }
+        },
+        // 新增QA相关方法
+        addQA() {
+            if (this.newQA.question && this.newQA.answer) {
+                this.qaPairs.push({...this.newQA});
+                this.newQA = { question: '', answer: '' };
+            }
+        },
+
+        removeQA(index) {
+            this.qaPairs.splice(index, 1);
+        },
+
+        async saveQAPairs() {
+            this.savingQA = true;
+            try {
+            const res = await axios.post('/api/ai/saveqa', {
+                pid: this.proj.projectId,
+                qa_pairs: this.qaPairs.filter(qa => 
+                qa.question.trim() && qa.answer.trim()
+                )
+            });
+            
+            if (res.data.errcode === 0) {
+                this.$message.success('QA 对保存成功');
+            } else {
+                throw new Error(res.data.message);
+            }
+            } catch (error) {
+            this.$message.error(`保存失败: ${error.message}`);
+            } finally {
+            this.savingQA = false;
             }
         },
         getDarkColor: topicSetting.getDarkColor,
@@ -740,10 +777,7 @@ export default {
                                 <v-card-title class="headline">
                                     讨论摘要
                                     <v-spacer></v-spacer>
-                                    <v-btn 
-                                        icon
-                                        @click="summaryDialog = false"
-                                    >
+                                    <v-btn icon @click="summaryDialog = false">
                                         <v-icon>mdi-close</v-icon>
                                     </v-btn>
                                 </v-card-title>
@@ -763,16 +797,95 @@ export default {
                                     >
                                         正在生成讨论摘要，请稍候...
                                     </v-alert>
+
+                                    <v-divider class="my-4"></v-divider>
+
+                                    <v-card-text>
+                                        <v-card-title>问答对编辑</v-card-title>
+                                        
+                                        <!-- QA 列表 -->
+                                        <div v-for="(qa, index) in qaPairs" :key="index" class="mb-4">
+                                            <v-text-field
+                                            v-model="qa.question"
+                                            label="问题"
+                                            outlined
+                                            dense
+                                            class="mb-2"
+                                            ></v-text-field>
+                                            
+                                            <v-textarea
+                                            v-model="qa.answer"
+                                            label="答案"
+                                            outlined
+                                            rows="2"
+                                            auto-grow
+                                            ></v-textarea>
+                                            
+                                            <div class="text-right">
+                                            <v-btn 
+                                                icon
+                                                @click="removeQA(index)"
+                                                color="error"
+                                            >
+                                                <v-icon>mdi-delete</v-icon>
+                                            </v-btn>
+                                            </div>
+                                        </div>
+
+                                        <!-- 新增 QA 输入 -->
+                                        <v-divider class="my-4"></v-divider>
+                                        <v-text-field
+                                            v-model="newQA.question"
+                                            label="新问题"
+                                            outlined
+                                            class="mb-2"
+                                        ></v-text-field>
+                                        <v-textarea
+                                            v-model="newQA.answer"
+                                            label="新答案"
+                                            outlined
+                                            rows="2"
+                                            auto-grow
+                                        ></v-textarea>
+                                        <v-btn 
+                                            block 
+                                            color="primary"
+                                            @click="addQA"
+                                            class="mt-2"
+                                        >
+                                            添加问答对
+                                        </v-btn>
                                 </v-card-text>
 
+                                <!-- 保存按钮 -->
+                                        <v-card-actions>
+                                        <v-spacer></v-spacer>
+                                        <v-btn 
+                                            color="primary"
+                                            @click="saveQAPairs"
+                                            :loading="savingQA"
+                                        >
+                                            <v-icon left>mdi-content-save</v-icon>
+                                            保存所有修改
+                                        </v-btn>
+                                        </v-card-actions>
+                                </v-card-text>
+                            </v-card>
+                        </v-dialog>
+
+                        <!-- 保存确认对话框应该放在外层 -->
+                        <v-dialog v-model="saveDialog" max-width="500">
+                            <v-card>
+                                <v-card-title class="headline">保存确认</v-card-title>
+                                <v-card-text>
+                                    确定要保存当前所有 QA 对修改吗？
+                                    <br>
+                                    <span class="red--text">注意：空的问题/答案对将被自动过滤！</span>
+                                </v-card-text>
                                 <v-card-actions>
                                     <v-spacer></v-spacer>
-                                    <v-btn 
-                                        color="primary"
-                                        @click="summaryDialog = false"
-                                    >
-                                        关闭
-                                    </v-btn>
+                                    <v-btn text @click="saveDialog = false">取消</v-btn>
+                                    <v-btn color="primary" @click="saveQA">确认保存</v-btn>
                                 </v-card-actions>
                             </v-card>
                         </v-dialog>
@@ -1174,5 +1287,16 @@ export default {
 
 .v-card__actions button {
     min-width: 120px;
+}
+
+.qa-item {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.v-input__slot {
+  background-color: #f8f9fa !important;
 }
 </style>

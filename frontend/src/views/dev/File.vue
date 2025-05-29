@@ -260,63 +260,63 @@ export default {
       }
     },
     openForm() {
-      this.commitForm.editList = [];
-      for (var i = 0; i < this.filePathList.length; i++) {
-        if (this.filePathList[i].path == this.curFilePath) {
-          if (this.cmEditor.getValue() != this.filePathList[i].content) {
-            this.filePathList[i].changed = true;
-            this.filePathList[i].newContent = this.cmEditor.getValue();
-          }
+        this.commitForm.editList = [];
+        for (var i = 0; i < this.filePathList.length; i++) {
+            if (this.filePathList[i].path == this.curFilePath) {
+            if (this.cmEditor.getValue() != this.filePathList[i].content) {
+                this.filePathList[i].changed = true;
+                this.filePathList[i].newContent = this.cmEditor.getValue();
+            }
+            }
+            if (this.filePathList[i].changed == true) {
+            var editFile = { path: this.filePathList[i].path, content: this.filePathList[i].newContent, isCommit: true };
+            this.commitForm.editList.push(editFile);
+            }
         }
-        if (this.filePathList[i].changed == true) {
-          var editFile = { path: this.filePathList[i].path, content: this.filePathList[i].newContent, isCommit: true };
-          this.commitForm.editList.push(editFile);
+        if (this.commitForm.editList.length == 0) {
+            this.$message({
+            message: '当前未修改任何文件',
+            type: 'warning'
+            });
+            return;
         }
-      }
-      if (this.commitForm.editList.length == 0) {
-        this.$message({
-          message: '当前未修改任何文件',
-          type: 'warning'
-        });
-        return;
-      }
-      var files = [];
-      for (var i = 0; i < this.commitForm.editList.length; i++) {
-        if (this.commitForm.editList[i].isCommit) {
-          var file = { path: this.commitForm.editList[i].path.slice(1), content: this.commitForm.editList[i].content };
-          files.push(file);
+        var files = [];
+        for (var i = 0; i < this.commitForm.editList.length; i++) {
+            if (this.commitForm.editList[i].isCommit) {
+            var file = { path: this.commitForm.editList[i].path.slice(1), content: this.commitForm.editList[i].content };
+            files.push(file);
+            }
         }
-      }
-      axios.post('api/ai/generateCommitMessage', {
-        userId: this.user.id,
-        projectId: this.proj.projectId,
-        repoId: this.$route.params.repoid,
-        branch: this.branchName,
-        files: files,
-      }).then((res) => {
-        if (res.data.errcode !== 0) {
-          alert('/api/develop/generateCommitMessage errcode not 0: ' + res.data.message)
-        } else {
-          this.commitForm.commitMessage = res.data.data;
-        }
-      }).catch((err) => {
-        alert('/api/develop/commit error' + err)
-        console.log(err);
-      })
-      this.commitVisible = true;
+        axios.post('api/ai/generateCommitMessage', {
+            userId: this.user.id,
+            projectId: this.proj.projectId,
+            repoId: this.$route.params.repoid,
+            branch: this.branchName,
+            files: files,
+        }).then((res) => {
+            if (res.data.errcode !== 0) {
+            alert('/api/develop/generateCommitMessage errcode not 0: ' + res.data.message)
+            } else {
+            this.commitForm.commitMessage = res.data.data;
+            }
+        }).catch((err) => {
+            alert('/api/develop/commit error' + err)
+            console.log(err);
+        })
+        this.commitVisible = true;
     },
     cancelEdit() {
-      for (var i = 0; i < this.filePathList.length; i++) {
-        if (this.filePathList[i].path == this.curFilePath) {
-          this.fileContent = this.filePathList[i].content;
-          this.cmEditor.setValue(this.fileContent);
-          this.cmEditor.setOption('mode', this.file2style());
+        for (var i = 0; i < this.filePathList.length; i++) {
+            if (this.filePathList[i].path == this.curFilePath) {
+            this.fileContent = this.filePathList[i].content;
+            this.cmEditor.setValue(this.fileContent);
+            this.cmEditor.setOption('mode', this.file2style());
+            }
+            if (this.filePathList[i].changed == true) {
+            this.filePathList[i].changed = false;
+            this.tabClick();
+            }
         }
-        if (this.filePathList[i].changed == true) {
-          this.filePathList[i].changed = false;
-          this.tabClick();
-        }
-      }
     },
     submitForm() {
       this.subDisable = true;
@@ -559,6 +559,16 @@ export default {
     newFile() {
       this.newFileData.visible = true;
     },
+    handleMessageFromCollabEditor(event) {
+        if (event.data && event.data.type === 'UPDATE_EDITOR_CODE') {
+            const newCode = event.data.code;
+            this.updateEditorContent(newCode); 
+        }
+    },
+    updateEditorContent(newCode) {
+        this.cmEditor.setValue(newCode);
+        this.fileContent = newCode;
+    },
     createNewFile() {
       if (this.newFileData.name == "") {
         this.$message({
@@ -605,145 +615,177 @@ export default {
             this.newFileData.name = '';
     }
   },
-  created() {
-    this.fileTreeReady = false;
-    axios.post('/api/develop/getFileTree', {
-      userId: this.user.id,
-      projectId: this.proj.projectId,
-      repoId: this.$route.params.repoid,
-      branch: this.branchName
-    }).then((res) => {
-      if (res.data.errcode === 0) {
-        console.log(res.data.data)
-        this.items = res.data.data             // [{file: ,   path: }]
-        for (let i = 0; i < this.items.length; i++) {
-          this.getFileExt(this.items[i], '')
-        }
-        console.log("tree:\n");
-        console.log(this.items);
-      } else {
-        alert('/api/reviews/getFileTree errcode not 0: ' + res.data.message)
-      }
-    }).catch((err) => {
-      alert('/api/reviews/getFileTree error' + err)
-      console.log(err);
-    }).finally(() => {
-      this.fileTreeReady = true;
-    })
-  },
-  watch: {
-    tree() {
-      console.log('selected file change!')
-      console.log(this.tree);
-      if (this.tree[0]['file'] !== undefined) {
-        this.treeDisable = true;
-        if (this.curFilePath === this.tree[0]['path']) {
-          this.treeDisable = false;
-          return;
-        }
-        for (var i = 0; i < this.filePathList.length; i++) {
-          if (this.filePathList[i].path === this.curFilePath) {
-            if (this.filePathList[i].content !== this.cmEditor.getValue()) {
-              this.filePathList[i].newContent = this.cmEditor.getValue();
-              this.filePathList[i].changed = true;
-            } else {
-              this.filePathList[i].changed = false;
+    created() {
+        this.fileTreeReady = false;
+        axios.post('/api/develop/getFileTree', {
+        userId: this.user.id,
+        projectId: this.proj.projectId,
+        repoId: this.$route.params.repoid,
+        branch: this.branchName
+        }).then((res) => {
+        if (res.data.errcode === 0) {
+            console.log(res.data.data)
+            this.items = res.data.data             // [{file: ,   path: }]
+            for (let i = 0; i < this.items.length; i++) {
+            this.getFileExt(this.items[i], '')
             }
-          }
+            console.log("tree:\n");
+            console.log(this.items);
+        } else {
+            alert('/api/reviews/getFileTree errcode not 0: ' + res.data.message)
         }
-        for (var i = 0; i < this.filePathList.length; i++) {
-          if (this.filePathList[i].path === this.tree[0]['path']) {
-            this.curFilePath = this.tree[0]['path'];
-            this.nextFilePath = this.tree[0]['path'];
-            this.curFileName = this.tree[0]['name'];
-            this.curType = this.tree[0]['file'];
-            this.fileContent = this.fileContent = this.filePathList[i].changed ? this.filePathList[i].newContent : this.filePathList[i].content;
-            this.cmEditor.setValue(this.fileContent)
-            this.cmEditor.setOption('mode', this.file2style())
+        }).catch((err) => {
+        alert('/api/reviews/getFileTree error' + err)
+        console.log(err);
+        }).finally(() => {
+        this.fileTreeReady = true;
+        })
+    },
+    watch: {
+        tree() {
+        console.log('selected file change!')
+        console.log(this.tree);
+        if (this.tree[0]['file'] !== undefined) {
+            this.treeDisable = true;
+            if (this.curFilePath === this.tree[0]['path']) {
             this.treeDisable = false;
             return;
-          }
+            }
+            for (var i = 0; i < this.filePathList.length; i++) {
+            if (this.filePathList[i].path === this.curFilePath) {
+                if (this.filePathList[i].content !== this.cmEditor.getValue()) {
+                this.filePathList[i].newContent = this.cmEditor.getValue();
+                this.filePathList[i].changed = true;
+                } else {
+                this.filePathList[i].changed = false;
+                }
+            }
+            }
+            for (var i = 0; i < this.filePathList.length; i++) {
+            if (this.filePathList[i].path === this.tree[0]['path']) {
+                this.curFilePath = this.tree[0]['path'];
+                this.nextFilePath = this.tree[0]['path'];
+                this.curFileName = this.tree[0]['name'];
+                this.curType = this.tree[0]['file'];
+                this.fileContent = this.fileContent = this.filePathList[i].changed ? this.filePathList[i].newContent : this.filePathList[i].content;
+                this.cmEditor.setValue(this.fileContent)
+                this.cmEditor.setOption('mode', this.file2style())
+                this.treeDisable = false;
+                return;
+            }
+            }
+            this.fileContentReady = false;
+            // this.cmEditor.setValue('正在努力拉取文件！\n\n  ')
+            // this.cmEditor.setOption('mode', '')
+            axios.post('/api/develop/getContent', {
+            userId: this.user.id,
+            projectId: this.proj.projectId,
+            repoId: this.$route.params.repoid,
+            branch: this.branchName,
+            path: this.tree[0]['path']
+            }).then((res) => {
+            if (res.data.errcode === 0) {
+                console.log(res.data.data)
+                var newFile = { file: this.tree[0]['file'], path: this.tree[0]['path'], name: this.tree[0]['name'], content: this.fileContent = res.data.data, newContent: '', changed: false, removed: false };
+                this.filePathList.push(newFile);
+                this.curFilePath = newFile.path;
+                this.nextFilePath = this.curFilePath;
+                this.curFileName = newFile.name;
+                this.fileContent = newFile.content;
+                this.curType = newFile.file;
+                this.cmEditor.setValue(this.fileContent)
+                this.cmEditor.setOption('mode', this.file2style())
+            } else {
+                alert('/api/reviews/getFileContent errcode not 0: ' + res.data.message)
+            }
+            }).catch((err) => {
+            alert('/api/reviews/getFileContent error' + err)
+            console.log(err);
+            }).finally(() => {
+            this.fileContentReady = true;
+            this.treeDisable = false;
+            })
         }
-        this.fileContentReady = false;
-        this.cmEditor.setValue('正在努力拉取文件！\n\n  ')
-        this.cmEditor.setOption('mode', '')
-        axios.post('/api/develop/getContent', {
-          userId: this.user.id,
-          projectId: this.proj.projectId,
-          repoId: this.$route.params.repoid,
-          branch: this.branchName,
-          path: this.tree[0]['path']
-        }).then((res) => {
-          if (res.data.errcode === 0) {
-            console.log(res.data.data)
-            var newFile = { file: this.tree[0]['file'], path: this.tree[0]['path'], name: this.tree[0]['name'], content: this.fileContent = res.data.data, newContent: '', changed: false, removed: false };
-            this.filePathList.push(newFile);
-            this.curFilePath = newFile.path;
-            this.nextFilePath = this.curFilePath;
-            this.curFileName = newFile.name;
-            this.fileContent = newFile.content;
-            this.curType = newFile.file;
-            this.cmEditor.setValue(this.fileContent)
-            this.cmEditor.setOption('mode', this.file2style())
-          } else {
-            alert('/api/reviews/getFileContent errcode not 0: ' + res.data.message)
-          }
-        }).catch((err) => {
-          alert('/api/reviews/getFileContent error' + err)
-          console.log(err);
-        }).finally(() => {
-          this.fileContentReady = true;
-          this.treeDisable = false;
-        })
-      }
-    }
-  },
-  mounted() {
-    this.cmEditor = CodeMirror.fromTextArea(this.$refs.cm1, {
-      theme: 'material',
-      lineNumbers: true,
-      line: true,
-      readOnly: false,
-      lineWrapping: true
-    });
+        }
+    },
+    mounted() {
+        this.cmEditor = CodeMirror.fromTextArea(this.$refs.cm1, {
+            theme: 'material',
+            lineNumbers: true,
+            line: true,
+            readOnly: false,
+            lineWrapping: true
+        });
 
-    this.cmEditor.on('cursorActivity', this.onCursorActivity);
-    this.checkFresh();
-  }
+        this.cmEditor.on('cursorActivity', this.onCursorActivity);
+        this.checkFresh();
+        window.addEventListener('message', this.handleMessageFromCollabEditor);
+    },
+    beforeDestroy() {
+        window.removeEventListener('message', this.handleMessageFromCollabEditor);
+    },
 }
 
 </script>
 
 <template>
-  <v-container>
+  <v-container fluid class="pa-0">
     <v-row style="margin-top: 20px">
-      <v-col :cols="fileContentReady ? 2 : 3">
+      <v-col :cols="2">
         <div class="tabs-menu">
           <h2>文件树</h2>
+          <div class="more-actions" style="display: flex; gap: 12px; margin-left: auto;">
+                <el-tooltip :content="(filePathList.length === 0) ? '请先选择文件' : '下载当前文件'" placement="top">
+                    <el-button type="text" size="small" @click="handleCommand('b')" style="padding: 4px;"
+                    :disabled="filePathList.length === 0">
+                    <i class="el-icon-download" style="color: #409EFF; font-size: 18px;"></i>
+                    </el-button>
+                </el-tooltip>
+                <el-tooltip :content="(filePathList.length === 0) ? '请先选择文件' : '新建文件'" placement="top">
+                    <el-button type="text" size="small" @click="handleCommand('c')" style="padding: 4px;"
+                    :disabled="filePathList.length === 0">
+                    <i class="el-icon-document-add" style="color: #67C23A; font-size: 18px;"></i>
+                    </el-button>
+                </el-tooltip>
+            </div>
         </div>
-        <v-card height="300px" class="overflow-y-auto">
-          <v-treeview v-if="fileTreeReady" :items="items" :activatable="!treeDisable" :active.sync="tree" item-key="name"
-            open-on-click dense return-object>
-            <template v-slot:prepend="{ item, open }">
-              <v-icon v-if="!item.file" :color="getTopicColor(user.topic)">
-                {{ open ? 'mdi-folder-open' : 'mdi-folder' }}
-              </v-icon>
-              <v-icon v-else :color="getTopicColor(user.topic)">
-                {{ files[item.file] !== undefined ? files[item.file] : 'mdi-file-document' }}
-              </v-icon>
+
+        <v-card height="300px" style="overflow-x: auto; overflow-y: auto;">
+            <template v-if="fileTreeReady">
+                <div style="min-width: max-content;">
+                <v-treeview
+                    :items="items"
+                    :activatable="!treeDisable"
+                    :active.sync="tree"
+                    item-key="name"
+                    open-on-click
+                    dense
+                    return-object
+                >
+                    <template v-slot:prepend="{ item, open }">
+                    <v-icon v-if="!item.file" :color="getTopicColor(user.topic)">
+                        {{ open ? 'mdi-folder-open' : 'mdi-folder' }}
+                    </v-icon>
+                    <v-icon v-else :color="getTopicColor(user.topic)">
+                        {{ files[item.file] !== undefined ? files[item.file] : 'mdi-file-document' }}
+                    </v-icon>
+                    </template>
+                </v-treeview>
+                </div>
             </template>
-          </v-treeview>
-          <v-skeleton-loader v-else type="list-item-three-line@5" class="mt-2"></v-skeleton-loader>
+            <template v-else>
+                <v-skeleton-loader
+                type="list-item-three-line@5"
+                class="mt-2"
+                ></v-skeleton-loader>
+            </template>
         </v-card>
+
+
         <div class="commit-div">
             
             <p> <el-button size="medium" class="commit-button" @click="cancelEdit">取消修改</el-button></p>
            <p>  <el-button type="primary" size="medium" @click="openForm" class="commit-button" style="color: white">创建提交</el-button></p>
-          
-          <!-- <div style="display: flex; justify-content: center;">
-            <p> <el-button size="medium" class="commit-button" @click="cancelEdit">取消修改</el-button></p>
-           <p>  <el-button type="primary" size="medium" @click="openForm" class="commit-button" style="color: white">创建提交</el-button></p>
-          </div> -->
         </div>
         <el-dialog :title="commitForm.title" :visible.sync="commitVisible" width="40%">
           <el-form :model="commitForm" ref="form" label-width="140px">
@@ -768,73 +810,50 @@ export default {
         </el-dialog>
       </v-col>
 
-      <v-col :cols="fileContentReady ? 7 : 9">
-        <div class="tabs-menu" v-show="filePathList.length">
-          <el-tabs v-model="nextFilePath" type="card" @tab-click="tabClick" @tab-remove="tabRemove">
-            <el-tab-pane v-for="item in filePathList" :key="item.path" :label="item.name" :name="item.path"
-              :closable="true">
-              <template #label>
-                <v-icon :color="getTopicColor(user.topic)">
-                  {{ files[item.file] !== undefined ? files[item.file] : 'mdi-file-document' }}
-                </v-icon>
-                {{ item.name }}
-                <v-icon v-if="item.changed" color="black">mdi-circle-small</v-icon>
-              </template>
-            </el-tab-pane>
-          </el-tabs>
-          <el-dropdown class="moreButton" @command="handleCommand">
-            <el-button type="primary" style="color: white">
-              更多功能<i class="el-icon-arrow-down el-icon--right"></i>
-            </el-button>
+      <v-col :cols="7">
+        <div class="tabs-menu" v-show="filePathList.length" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <el-tabs v-model="nextFilePath" type="card" @tab-click="tabClick" @tab-remove="tabRemove"
+                    style="width: 100%; overflow-x: auto; white-space: nowrap;">
+                    <el-tab-pane v-for="item in filePathList" :key="item.path" :label="item.name" :name="item.path"
+                    :closable="true">
+                        <template #label>
+                            <v-icon :color="getTopicColor(user.topic)">
+                            {{ files[item.file] !== undefined ? files[item.file] : 'mdi-file-document' }}
+                            </v-icon>
+                            {{ item.name }}
+                            <v-icon v-if="item.changed" color="black">mdi-circle-small</v-icon>
+                        </template>
+                    </el-tab-pane>
+            </el-tabs>
 
-            <el-dropdown-menu slot="dropdown">
-              <!-- <el-dropdown-item command="a">查看文件贡献图</el-dropdown-item> -->
-              <el-dropdown-item command="b">下载当前文件</el-dropdown-item>
-              <el-dropdown-item command="c">新建文件</el-dropdown-item>
-              <el-dropdown-item command="d">多人协同编辑</el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
-          <el-dialog title="新建文件" :visible.sync="newFileData.visible" width="40%">
+            <el-dialog title="新建文件" :visible.sync="newFileData.visible" width="40%">
                 <el-form :model="newFileData" ref="form" label-width="140px">
-                  <el-form-item label="文件名">
+                <el-form-item label="文件名">
                     <el-input v-model="newFileData.name"></el-input>
-                  </el-form-item>
-                  <el-form-item>
+                </el-form-item>
+                <el-form-item>
                     <el-button type="primary" @click="createNewFile">新建</el-button>
-                  </el-form-item>
+                </el-form-item>
                 </el-form>
-              </el-dialog>
+            </el-dialog>
         </div>
-        <div v-show="filePathList.length === 0" style="height: 10%; position: relative">
-          <el-dropdown class="moreButton">
-            <el-button type="primary" style="color: white">
-              更多功能<i class="el-icon-arrow-down el-icon--right"></i>
-            </el-button>
-            <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item>请先选择文件</el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
-        </div>
+
         <v-card max-height="calc(100vh - 300px)" min-height="calc(100vh - 300px)">
           <textarea ref="cm1" v-model='fileContent' style="height: calc(100vh - 300px); width: 100%"></textarea>
         </v-card>
       </v-col>
 
-       <v-col cols="3" v-if="fileContentReady">
+       <v-col cols="3">
             <h2 :style="'text-decoration: none; color: ' + getTopicColor(user.topic)">代码助手</h2>
             <v-card max-height="calc(100vh - 300px)" min-height="calc(100vh - 300px)" class="overflow-y-auto overflow-x-hidden">
         
                 <v-divider></v-divider>
 
-                <v-card-title>人机协同</v-card-title>
-                <v-card-text>AutoHub也很乐意对您选中的代码，或是整个文件进行代码优化</v-card-text>
+                <v-card-title>协同开发</v-card-title>
+                <v-card-text>AutoHub 提供协同开发功能，您可以与其他用户共同编辑同一个项目，也可以邀请 AI 协助进行代码编写与优化</v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagSelected"><v-icon>mdi-code-braces</v-icon>对选中代码</v-btn>
-                </v-card-actions>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="diagWholeFile"><v-icon>mdi-code-braces</v-icon>对整个文件</v-btn>
+                    <v-btn :disabled="!fileContentReady" width="" outlined :color="getTopicColor(user.topic)" @click="onClickCollab"><v-icon>mdi-magnify-scan</v-icon>发起协同</v-btn>
                 </v-card-actions>
 
                 <v-divider></v-divider>
@@ -843,7 +862,7 @@ export default {
                 <v-card-text>AutoHub帮助您管理源代码的质量，快速定位Bug、漏洞以及不优雅的地方</v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="analyWholeFile"><v-icon>mdi-magnify-scan</v-icon>对整个文件</v-btn>
+                    <v-btn :disabled="!fileContentReady" width="" outlined :color="getTopicColor(user.topic)" @click="analyWholeFile"><v-icon>mdi-magnify-scan</v-icon>对整个文件</v-btn>
                 </v-card-actions>
                 
                 <v-divider></v-divider>
@@ -852,11 +871,11 @@ export default {
                 <v-card-text>AutoHub可以对您选中的代码，或是整个文件生成单元测试</v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
+                    <v-btn :disabled="!fileContentReady" width="" outlined :color="getTopicColor(user.topic)" @click="unitTestSelected"><v-icon>mdi-check</v-icon>对选中代码</v-btn>
                 </v-card-actions>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn width="" outlined :color="getTopicColor(user.topic)" @click="unitTestWholeFile"><v-icon>mdi-check</v-icon>对整个文件</v-btn>
+                    <v-btn :disabled="!fileContentReady" width="" outlined :color="getTopicColor(user.topic)" @click="unitTestWholeFile"><v-icon>mdi-check</v-icon>对整个文件</v-btn>
                 </v-card-actions>
 
             </v-card>
@@ -875,6 +894,21 @@ export default {
 </template>
 
 <style>
+
+/* 放在全局样式或 scoped 样式中 */
+.v-treeview-node__label {
+  overflow: auto !important; /* 允许滚动 */
+  white-space: nowrap !important; /* 不换行 */
+  text-overflow: unset !important; /* 不使用省略号 */
+  max-width: 100%; /* 可选，确保不会撑破容器 */
+}
+
+.pa-0 {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+
 .CodeMirror {
   height: calc(100vh - 300px);
 }
