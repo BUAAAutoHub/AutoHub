@@ -417,47 +417,48 @@
                     <el-dialog title="🔧 Bot 绑定说明" :visible.sync="botInfoVisible" width="800px">
 
                         <div class="rule-content" style="line-height: 1.6; font-size: 14px; color: #333; ">
-        <h3>必要的最小权限</h3>
-        <ol>
-          <li>
-            <strong><code>repo</code> 权限（完整仓库访问权限）</strong><br />
-            包含的子权限：<br />
-            <ul>
-              <li><code>repo:status</code>（仓库状态）</li>
-              <li><code>repo_deployment</code>（部署）</li>
-              <li><code>public_repo</code>（如果仅限公开仓库）</li>
-            </ul>
-          </li>
-          <li>
-            <strong><code>write:discussion</code>（管理 Issue/PR 评论权限）</strong><br />
-          </li>
-          <li>
-            <strong><code>admin:org</code>（组织级别标签管理权限）</strong><br />
-            如果仓库属于某个组织，且需要管理组织级别的标签，可能需要此权限（但通常 <code>repo</code> 权限已足够）。
-          </li>
-        </ol>
+                            在绑定BOT之前，你需要新建一个github账号，并且将该账号加入对应的仓库/组织中，同时向我们提供对应的token。
+                            <h3>必要的最小权限</h3>
+                            <ol>
+                            <li>
+                                <strong><code>repo</code> 权限（完整仓库访问权限）</strong><br />
+                                包含的子权限：<br />
+                                <ul>
+                                <li><code>repo:status</code>（仓库状态）</li>
+                                <li><code>repo_deployment</code>（部署）</li>
+                                <li><code>public_repo</code>（如果仅限公开仓库）</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong><code>write:discussion</code>（管理 Issue/PR 评论权限）</strong><br />
+                            </li>
+                            <li>
+                                <strong><code>admin:org</code>（组织级别标签管理权限）</strong><br />
+                                如果仓库属于某个组织，且需要管理组织级别的标签，可能需要此权限（但通常 <code>repo</code> 权限已足够）。
+                            </li>
+                            </ol>
 
-        <h3>推荐 Token 权限</h3>
-        <p><strong>作用范围（Scopes）：</strong></p>
-        <ul>
-          <li><code>repo</code>（完全控制仓库，包括 Issues 和 PRs）</li>
-          <li><code>write:discussion</code>（如果仅需要评论，但 <code>repo</code> 已包含该权限）</li>
-        </ul>
+                            <h3>推荐 Token 权限</h3>
+                            <p><strong>作用范围（Scopes）：</strong></p>
+                            <ul>
+                            <li><code>repo</code>（完全控制仓库，包括 Issues 和 PRs）</li>
+                            <li><code>write:discussion</code>（如果仅需要评论，但 <code>repo</code> 已包含该权限）</li>
+                            </ul>
 
-        <h3>如何生成 Token</h3>
-        <ol>
-          <li>进入 GitHub 设置 → <strong>Developer settings</strong> → <strong>Personal access tokens (PAT)</strong>。</li>
-          <li>点击 <strong>Generate new token</strong>。</li>
-          <li>填写描述（如 <code>Issue/PR Comment & Label</code>）。</li>
-          <li>选择权限：
-            <ul>
-              <li>推荐选择 <code>repo</code>（涵盖 Issues 和 PRs 的读写权限）</li>
-              <li>或者仅选择 <code>public_repo</code>（仅限公开仓库）和 <code>write:discussion</code>（评论权限）。</li>
-            </ul>
-          </li>
-          <li>点击 <strong>Generate token</strong>，并 <strong>妥善保存</strong>（关闭后无法再次查看）。</li>
-        </ol>
-      </div>
+                            <h3>如何生成 Token</h3>
+                            <ol>
+                            <li>进入 GitHub 设置 → <strong>Developer settings</strong> → <strong>Personal access tokens (PAT)</strong>。</li>
+                            <li>点击 <strong>Generate new token</strong>。</li>
+                            <li>填写描述（如 <code>Issue/PR Comment & Label</code>）。</li>
+                            <li>选择权限：
+                                <ul>
+                                <li>推荐选择 <code>repo</code>（涵盖 Issues 和 PRs 的读写权限）</li>
+                                <li>或者仅选择 <code>public_repo</code>（仅限公开仓库）和 <code>write:discussion</code>（评论权限）。</li>
+                                </ul>
+                            </li>
+                            <li>点击 <strong>Generate token</strong>，并 <strong>妥善保存</strong>（关闭后无法再次查看）。</li>
+                            </ol>
+                        </div>
 
                         <span slot="footer" class="dialog-footer">
                             <el-button @click="botInfoVisible = false">关闭</el-button>
