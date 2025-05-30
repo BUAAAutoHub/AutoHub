@@ -33,11 +33,26 @@
           </v-btn>
         </div>
         
-        <div class="messages-container"  ref="messages">
-          <div v-for="(msg, i) in messages" :key="i" :class="['message', msg.sender]">
-            <div class="message-content">{{ msg.text }}</div>
-            <div class="message-time">{{ msg.time }}</div>
-          </div>
+        <div class="messages-container" ref="messages">
+            <div v-for="(msg, i) in messages" :key="i" :class="['message', msg.sender]">
+            <!-- 消息内容气泡 -->
+            <div class="message-bubble">
+                <div class="message-content">{{ msg.text }}</div>
+            </div>
+            
+            <!-- 消息底部信息（来源+时间） -->
+            <div class="message-footer">
+                <!-- 来源标签 -->
+                <div v-if="msg.sender === 'ai' && msg.sources.length" class="message-sources">
+                <span v-for="(source, idx) in msg.sources" :key="idx" class="source-tag">
+                    {{ source }}
+                </span>
+                </div>
+                
+                <!-- 时间 -->
+                <div class="message-time">{{ msg.time }}</div>
+            </div>
+            </div>
         </div>
         
         <!-- 固定在底部的输入区域 -->
@@ -88,7 +103,14 @@ export default {
       isChatOpen: false,
       message: '',
       messages: [],
-      contextStr: '' // 新增上下文标识字段
+      contextStr: '', // 新增上下文标识字段
+      cur_mask: '000',
+      // 来源映射定义
+      sourceMap: {
+        '100': '当前项目代码',
+        '010': '项目用户手册',
+        '001': '项目知识库'
+      }
     }
   },
   mounted() {
@@ -146,6 +168,7 @@ export default {
       this.isChatOpen = !this.isChatOpen;
       if (!this.isChatOpen) {
         this.contextStr = ''; // 关闭时重置上下文
+        this.cur_mask = '000';
         this.messages = [];    // 可选：清空消息记录
       }
       if (this.isChatOpen) {
@@ -174,30 +197,39 @@ export default {
         await this.$nextTick();
         this.scrollToBottom();
 
+        console.log("cur_mask0: ", this.cur_mask)
         try {
             // 实际API调用
             const response = await axios.post('/api/ai/chat', {
                 pid: this.currentProjectId,
                 message: userMessage,
-                context: this.contextStr
+                context: this.contextStr,
+                cur_mask: this.cur_mask
             });
-
+            
             this.contextStr = response.data.context
+            this.cur_mask = response.data.cur_mask
+            console.log("cur_mask: ", this.cur_mask)
+
+            // 解析来源信息
+            const sources = this.parseSources(response.data.cur_mask);
 
             // 添加AI回复
             this.messages.push({
                 text: response.data.reply || '收到空回复',
                 sender: 'ai',
-                time: new Date().toLocaleTimeString()
+                time: new Date().toLocaleTimeString(),
+                sources: sources  // 添加来源数组
             });
         } catch (error) {
             console.error('API错误:', error);
             //console.log('contextStr: ', this.contextStr);
             this.messages.push({
             //text: '抱歉，AI助手暂时无法响应',
-            text: '您好，有什么可以帮助你？',
+            text: '服务器繁忙，请稍后再试',
             sender: 'ai',
-            time: new Date().toLocaleTimeString()
+            time: new Date().toLocaleTimeString(),
+            sources: []
             });
         }
         
@@ -210,12 +242,25 @@ export default {
         if (container) {
             container.scrollTop = container.scrollHeight;
         }
-        }
+    },
+    // 解析来源信息
+    parseSources(maskValue) {
+      if (!maskValue || maskValue === '000') return [];
+      
+      const sources = [];
+      // 检查每个来源位
+      if (maskValue[0] === '1') sources.push(this.sourceMap['100']);
+      if (maskValue[1] === '1') sources.push(this.sourceMap['010']);
+      if (maskValue[2] === '1') sources.push(this.sourceMap['001']);
+      
+      return sources;
+    }
   }
 }
 </script>
 
 <style scoped>
+/* 基础助手样式 */
 .ai-assistant {
   position: fixed;
   z-index: 10001;
@@ -233,6 +278,11 @@ export default {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
+.assistant-icon:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+}
+
 /* 过渡动画 */
 .slide-fade-enter-active {
   transition: all 0.3s ease;
@@ -246,6 +296,19 @@ export default {
   opacity: 0;
 }
 
+.slide-up-enter-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slide-up-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+.slide-up-enter,
+.slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+/* 悬浮提示文字 */
 .assistant-tooltip {
   position: absolute;
   bottom: -32px;
@@ -261,22 +324,6 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* 提示文字动画 */
-.fade-tooltip-enter-active,
-.fade-tooltip-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.fade-tooltip-enter,
-.fade-tooltip-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(5px);
-}
-
-.assistant-icon:hover {
-  transform: scale(1.1);
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
-}
-
 .assistant-tooltip::after {
   content: "";
   position: absolute;
@@ -286,6 +333,16 @@ export default {
   border-width: 5px;
   border-style: solid;
   border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+.fade-tooltip-enter-active,
+.fade-tooltip-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-tooltip-enter,
+.fade-tooltip-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(5px);
 }
 
 /* 聊天窗口容器 */
@@ -327,16 +384,27 @@ export default {
   min-height: 0;
 }
 
-/* 消息气泡 */
+/* 滚动条美化 */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+.messages-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+/* 消息整体样式 */
 .message {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 12px;
-  max-width: 80%;
-  width: fit-content;        /* 让气泡根据内容自适应 */
+  max-width: 85%;
+  width: fit-content;
 }
 
 .message.user {
   margin-left: auto;
-  min-width: 20%;           /* 防止过短消息 */
+  min-width: 20%;
 }
 
 .message.ai {
@@ -344,37 +412,73 @@ export default {
   min-width: 20%;
 }
 
-.message-content {
+/* 消息气泡样式 */
+.message-bubble {
   padding: 10px 14px;
   border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.4;
-  white-space: pre-wrap;       /* 保留换行符但自动换行 */
-  word-wrap: break-word;      /* 允许长单词/URL换行 */
-  word-break: break-word;     /* 更激进的长文本断行 */
-  overflow-wrap: anywhere;    /* 确保任何字符位置都能换行 */
-  max-width: 100%;           /* 防止超出容器 */
+  word-wrap: break-word;
+  position: relative;
 }
 
-.message.user .message-content {
+.message.user .message-bubble {
+  align-self: flex-end;
   background: #007bff;
   color: white;
   border-bottom-right-radius: 4px;
 }
 
-.message.ai .message-content {
+.message.ai .message-bubble {
+  align-self: flex-start;
   background: #e9ecef;
   color: #333;
   border-bottom-left-radius: 4px;
+  /*border-left: 3px solid #1976d2;*/
 }
 
+/* 消息内容样式 */
+.message-content {
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* 消息底部信息 */
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  width: 100%;
+}
+
+/* 来源标签样式 */
+.message-sources {
+  display: flex;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.source-tag {
+  background-color: #e0f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #80deea;
+}
+
+/* 时间样式 */
 .message-time {
-  font-size: 10px;
-  color: #6c757d;
+  font-size: 0.7rem;
+  color: #999;
+  min-width: 70px;
   text-align: right;
-  margin-top: 4px;
 }
 
+/* 输入区域样式 */
 .input-container {
   padding: 12px;
   border-top: 1px solid #e1e4e8;
@@ -395,31 +499,9 @@ export default {
   position: absolute;
   right: 8px;
   top: 50%;
-  transform: translateY(-50%); /* 关键居中属性 */
+  transform: translateY(-50%);
   margin: 0;
   z-index: 2;
-}
-
-/* 动画效果 */
-.slide-up-enter-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.slide-up-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
-}
-.slide-up-enter,
-.slide-up-leave-to {
-  transform: translateY(20px);
-  opacity: 0;
-}
-
-/* 滚动条美化 */
-.messages-container::-webkit-scrollbar {
-  width: 6px;
-}
-.messages-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
 }
 
 </style>

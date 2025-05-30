@@ -115,15 +115,27 @@ export default {
             this.generatedLink = window.location.href;
             this.shareDialog = true;
         },
-        copyLink() {
-            navigator.clipboard.writeText(this.generatedLink).then(() => {
-                this.$message.success('链接已复制到剪贴板');
-                this.shareDialog = false;
-            }).catch(err => {
-                console.error('复制失败:', err);
-                this.$message.error('复制失败，请手动复制');
-            });
-        },
+        async copyLink() {
+            try {
+            if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(this.generatedLink)
+            } else {
+            const input = document.createElement('input')
+            input.value = this.generatedLink
+            document.body.appendChild(input)
+            input.select()
+            document.execCommand('copy')
+            document.body.removeChild(input)
+            }
+
+            this.copySuccess = true
+            setTimeout(() => {
+            this.copySuccess = false
+            }, 2000)
+        } catch (err) {
+            console.error('复制失败:', err)
+            this.$message.error('复制失败，请手动复制链接')
+        }},
         getTopicColor: topicSetting.getColor,
         getRadialGradient: topicSetting.getRadialGradient
     }
