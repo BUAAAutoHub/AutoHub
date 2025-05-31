@@ -57,6 +57,7 @@ export default {
         ytext: null,
         yMap: null,
         editor: null,
+        onCursorPosChange: null,
         connectionStatus: 'Disconnect',
         selectedLanguage: 'javascript',
         loadedHints: new Set(),
@@ -99,9 +100,9 @@ export default {
             // Initialize Yjs document and WebSocket provider
             this.ydoc = new Y.Doc()
             this.provider = new WebsocketProvider(
-            'wss://demos.yjs.dev/ws', // Use the public WebSocket server
-            this.roomName,
-            this.ydoc
+                'wss://demos.yjs.dev/ws', // Use the public WebSocket server
+                this.roomName,
+                this.ydoc
             )
 
             // 设置本地用户的颜色
@@ -150,12 +151,51 @@ export default {
                 }
             });
 
+            // 这里赋值节流函数
+            this.onCursorPosChange = this.throttle(this.updateAwarenessPosition, 80);
+
+            this.editor.on('cursorActivity', () => {
+                const doc = this.editor.getDoc();
+                const cursor = doc.getCursor();
+                this.onCursorPosChange(cursor);
+            });
+
             this.$refs.editorContainer.editorInstance = this.editor
         
             new CodemirrorBinding(this.ytext, this.editor, this.provider.awareness)
 
             // 初始化时触发一次自动加载hints插件
             this.changeLanguage()
+        },
+
+        // 节流：
+        throttle(fn, delay) {
+            let lastCall = 0;
+            let timeoutId = null;
+            return (...args) => {
+            const now = Date.now();
+            if (now - lastCall < delay) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                lastCall = Date.now();
+                fn.apply(this, args);
+                }, delay - (now - lastCall));
+            } else {
+                lastCall = now;
+                fn.apply(this, args);
+            }
+            }
+        },
+
+        updateAwarenessPosition(pos) {
+            const activeClientCount = this.provider.awareness.getStates().size;
+            if (activeClientCount < 2) return; // 只有自己不发
+            const localState = this.provider.awareness.getLocalState();
+            if (!localState) return;
+            this.provider.awareness.setLocalStateField('user', {
+            ...localState.user,
+            pos: { ...pos },
+            });
         },
 
         async changeLanguage() {
@@ -189,7 +229,6 @@ export default {
             }
             this.loadedHints.add(this.selectedLanguage);
         },
-        
 
         handleAwarenessChange() {
             const states = this.provider.awareness.getStates()
@@ -235,6 +274,30 @@ export default {
 
 <style>
 
+.remote-caret {
+  position: relative;
+  height: 1em;
+  margin-left: -1px;
+  z-index: 10;
+  pointer-events: none;
+  border-left: 2px solid;
+}
+
+/* 关键：设置用户名 div 悬浮在光标下方 */
+.remote-caret > div {
+  position: absolute;
+  bottom: -150%; /* 悬浮在插入线上方 */
+  left: -2px;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: inherit; /* 你可以动态设置 span 上的 color 作为背景 */
+  color: white; /* 或用 JS 动态对比背景色计算 */
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 100;
+}
 
 .yjs-editor {
 flex: 1;
