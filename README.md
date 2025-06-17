@@ -32,12 +32,6 @@ ollama serve
 sudo apt install nodejs npm
 sudo npm install -g pnpm
 pnpm install
-
-pnpm add prismjs
-pnpm add dayjs
-pnpm add sass
-pnpm add v-code-diff
-pnpm update v-code-diff
 ```
 
 ### 注意
@@ -47,10 +41,12 @@ pnpm update v-code-diff
 
 ## 运行
 ### backend：
-
+注意后端terminal最好挂上梯子
+同时需要初始化gh，可参照https://zhuanlan.zhihu.com/p/601200139
 ```bash
 python manage.py runserver 0.0.0.0:8000
 ```
+
 
 ### frontend：
 
