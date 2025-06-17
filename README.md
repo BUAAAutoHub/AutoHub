@@ -21,6 +21,9 @@ sudo docker pull sonarqube # 网不好，可以本地下载再上传
 sudo docker run -d --name sonarqube -p 9000:9000 -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true sonarqube:latest
 export PATH=/home/auto/sonarqube/sonar-scanner-7.1.0.4889-linux-x64/bin:$PATH
 ```
+随后进入http://localhost:9000
+在右上角My Account -> Security -> Generate Tokens 生成Token并替换backend/myApp/utils/projects/userdevelop.py的2322行的Token
+
 
 ### ollama
 bash install_ollama.sh
