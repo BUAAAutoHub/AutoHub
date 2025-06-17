@@ -8,6 +8,7 @@ import sys
 import tempfile
 import time
 import shutil
+from functools import lru_cache
 
 from django.http import JsonResponse, FileResponse
 from django.views import View
@@ -59,7 +60,7 @@ def isUserInProject(userId, projectId):
 
 def genUnexpectedlyErrorInfo(response, e):
     response["errcode"] = -1
-    response["message"] = "unexpectedly error : " + str(e)
+    response["message"] = "网络出了点问题~"
     return response
 
 
@@ -601,6 +602,7 @@ class GetRepoBranches(View):
         userId = str(kwargs.get("userId"))
         projectId = str(kwargs.get("projectId"))
         repoId = str(kwargs.get("repoId"))
+        pullFlag = kwargs.get("pullFlag", False)
         project = isProjectExists(projectId)
         if project == None:
             return JsonResponse(genResponseStateInfo(response, 1, "project does not exists"))
@@ -613,30 +615,14 @@ class GetRepoBranches(View):
         token = User.objects.get(id=userId).token
         if token is None or validate_token(token) == False:
             return JsonResponse(genResponseStateInfo(response, 4, "invalid token"))
-
+        # 如果 repo.json 不存在
+        if not os.path.exists(USER_REPOS_DIR + f"/user{userId}/repo-{repoId}.json"):
+            pullFlag = True
         data = []
         try:
-            remotePath = Repo.objects.get(id=repoId).remote_path
-            command = [
-                "gh",
-                "api",
-                "-H",
-                "Accept: application/vnd.github+json",
-                "-H",
-                "X-GitHub-Api-Version: 2022-11-28",
-                "-H",
-                f"Authorization: token {token}",
-                f"/repos/{remotePath}/branches",
-            ]
-            result = subprocess.run(command, capture_output=True, text=True, check=True)
-            # print("err is :", result.stderr)
-            flag, response = checkCMDError(result.stderr, 5, response)
-            if flag:
-                return JsonResponse(response)
-            ghInfo = json.loads(result.stdout)
-            for it in ghInfo:
-                sha = it["commit"]["sha"]
-                cmd = [
+            if pullFlag:
+                remotePath = Repo.objects.get(id=repoId).remote_path
+                command = [
                     "gh",
                     "api",
                     "-H",
@@ -645,26 +631,50 @@ class GetRepoBranches(View):
                     "X-GitHub-Api-Version: 2022-11-28",
                     "-H",
                     f"Authorization: token {token}",
-                    f"/repos/{remotePath}/commits/{sha}",
+                    f"/repos/{remotePath}/branches",
                 ]
-                cmd_result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                # print("out is :", cmd_result.stdout)
-                flag, response = checkCMDError(cmd_result.stderr, 6, response)
+                result = subprocess.run(command, capture_output=True, text=True, check=True)
+                # print("err is :", result.stderr)
+                flag, response = checkCMDError(result.stderr, 5, response)
                 if flag:
                     return JsonResponse(response)
-                commitInfo = json.loads(cmd_result.stdout)
-                data.append(
-                    {
-                        "branchName": it["name"],
-                        "lastCommit": {
-                            "sha": sha,
-                            "authorName": commitInfo["commit"]["author"]["name"],
-                            "authorEmail": commitInfo["commit"]["author"]["email"],
-                            "commitDate": commitInfo["commit"]["author"]["date"],
-                            "commitMessage": commitInfo["commit"]["message"],
-                        },
-                    }
-                )
+                ghInfo = json.loads(result.stdout)
+                for it in ghInfo:
+                    sha = it["commit"]["sha"]
+                    cmd = [
+                        "gh",
+                        "api",
+                        "-H",
+                        "Accept: application/vnd.github+json",
+                        "-H",
+                        "X-GitHub-Api-Version: 2022-11-28",
+                        "-H",
+                        f"Authorization: token {token}",
+                        f"/repos/{remotePath}/commits/{sha}",
+                    ]
+                    cmd_result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                    # print("out is :", cmd_result.stdout)
+                    flag, response = checkCMDError(cmd_result.stderr, 6, response)
+                    if flag:
+                        return JsonResponse(response)
+                    commitInfo = json.loads(cmd_result.stdout)
+                    data.append(
+                        {
+                            "branchName": it["name"],
+                            "lastCommit": {
+                                "sha": sha,
+                                "authorName": commitInfo["commit"]["author"]["name"],
+                                "authorEmail": commitInfo["commit"]["author"]["email"],
+                                "commitDate": commitInfo["commit"]["author"]["date"],
+                                "commitMessage": commitInfo["commit"]["message"],
+                            },
+                        }
+                    )                    
+                    with open(USER_REPOS_DIR + f"/user{userId}/repo-{repoId}.json", "w") as f:
+                        json.dump(data, f, indent=4)
+            else:
+                with open(USER_REPOS_DIR + f"/user{userId}/repo-{repoId}.json", "r") as f:
+                    data = json.load(f)
             response["data"] = data
         except Exception as e:
             return JsonResponse(genUnexpectedlyErrorInfo(response, e))
@@ -988,7 +998,6 @@ class GetContent(View):
         if not UserProjectRepo.objects.filter(project_id=projectId, repo_id=repoId).exists():
             return JsonResponse(genResponseStateInfo(response, 3, "no such repo in project"))
         repo = Repo.objects.get(id=repoId)
-
         token = User.objects.get(id=userId).token
         if token is None or validate_token(token) == False:
             return JsonResponse(genResponseStateInfo(response, 4, "invalid token"))
@@ -1022,17 +1031,17 @@ def validate_token_format(token):
     return False
 
 
+
+@lru_cache(maxsize=100)
+def validate_token_cached(token):
+    headers = {"Authorization": "token " + token, "Content-Type": "application/json; charset=utf-8"}
+    response = requests.get("https://api.github.com/user", headers=headers)
+    return response.status_code == 200
+
 def validate_token(token):
     if not validate_token_format(token):
         return False
-    headers = {"Authorization": "token " + token, "Content-Type": "application/json; charset=utf-8"}
-    response = requests.get("https://api.github.com/user", headers=headers)
-    print(token, response.status_code)
-    if response.status_code == 200:
-        return True
-    print("Response body:", response.text)
-    print("Response headers:", response.headers)
-    return False
+    return validate_token_cached(token)
 
 
 def is_independent_git_repository(path):

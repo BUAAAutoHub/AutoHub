@@ -171,6 +171,7 @@ urlpatterns = [
     path("api/bot/removeBot", projectBot.BotRemove.as_view()),
     path("api/bot/disableBot", projectBot.DisableOrEnableBot.as_view()),
     path("api/bot/autoreview", projectBot.AutoReview.as_view()),
+    path("api/bot/partreview", projectBot.PartReview.as_view()),
     path("api/bot/addlabel2db", projectBotRule.AddLabel2db.as_view()),
     path("api/bot/removelabel", projectBotRule.RemoveLabelFromdb.as_view()),
     path("api/bot/getlabels", projectBotRule.getLabels.as_view()),
@@ -188,6 +189,5 @@ urlpatterns = [
     path("api/ai/saveqa", AI.SaveQAPairs.as_view()),
     path("api/ai/chat", AI.ChatWithProjectExpert.as_view()),
     path("api/ai/generateLabel", AI.GenerateLabelwithDiscription.as_view()),
-
 
 ]

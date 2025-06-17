@@ -98,6 +98,7 @@ def _add_comment(token: str,remote_path: str,
         f"body={message}",
     ]
     subprocess.run(command, capture_output=True, text=True)
+    print(f"添加评论成功: {message} endpoint: {endpoint}")
 
 def _add_labels(token: str, remote_path: str, 
                 item_type: str, item_number: int, labels: List[str]):

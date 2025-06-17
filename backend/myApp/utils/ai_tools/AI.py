@@ -82,7 +82,7 @@ class GenerateCodeReview(View):
         
         text = kwargs.get("code")
 
-        prefix = "please help me analyze the following code, and generate code review briefly.\n"
+        prefix = "please help me analyze the following code, and generate code review briefly. 请使用中文进行回复\n"
 
         reply = simple_llm_generate(prefix + text)
         print(f"{reply}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -143,12 +143,10 @@ class SummarizeDiscussion(View):
         text = get_room_content_api(rid, user)
         text = formatting_discussion_context(text)
 
-        prompt_stage_1 = "Please summarize the following contexts briefly as possible"
+        prompt_stage_1 = "请使用中文进行回复 Please summarize the following contexts briefly as possible"
         summary = simple_llm_generate(prompt_stage_1 + text)
 
-        
-
-        prompt_stage_2 = "Given the summary of a discussion, you should refine and transform it by Question-Answer pair format. " \
+        prompt_stage_2 = "请使用中文进行回复 Given the summary of a discussion, you should refine and transform it by Question-Answer pair format. " \
         "We wish the response belikes multi-turns conversation, " \
         "please explicitly use signals like <Question>, <Answer> and <end> to represent the start and end" \
         "Hence, your answer should follows: " \
@@ -206,30 +204,92 @@ class ChatWithProjectExpert(View):
             return JsonResponse(response)
         
         try:
+            print("this is kwargs: ", kwargs)
             text = kwargs.get("message")
             prefixs = kwargs.get("context")
+            
             pid = kwargs.get("pid")
+            # cur_mask = '111'
+            cur_mask = kwargs.get("cur_mask") # 3-bits, str, 当前项目代码 / 该项目的用户手册 / 该项目相关知识库
+            if len(cur_mask) == 0:
+                cur_mask = '000'
+            cur_mask_list = list(cur_mask)
+            print("this is cur_mask_list: ", cur_mask_list)
         except Exception:
             response = {'errcode': 1, 'message': "keys not found"}
             return JsonResponse(response)
 
-        print(f"this is prefixs : {prefixs}===========")
+        valid_prefixs = context_decode(prefixs) if len(prefixs) > 0 else []
 
-        # TODO check
+        # valid_prefixs = []
+        # for msg in prefixs:
+        #     if "content" in msg and msg["content"].strip():
+        #         valid_prefixs.append(msg)
+        #     else:
+        #         print(f"警告：跳过空内容消息: {msg}")
+
+        decision = " <要求>: 对于新问题，是否需要除了当前上下文以外的内容？你需要且仅可以输出一个3位二进制掩码，这三位分别对应阅读当前项目代码、AutoHub项目的用户手册（问到AutoHub有关的任何问题时代表需要它）、该项目相关知识库（当你发现一些名词，你有极大可能会在知识库中找到相关内容！！），1代表需要，0代表不需要，例如，你需要代码、不需要用户手册、需要项目相关知识库，如果你可以直接完成这个任务，则输出000即可，如果你需要其中任何一项内容，则将对应位置置为1，请不要产出任何其他输出，只需要输出这个三bit掩码！！！"
+        print("this is decision: ", text + decision)
+        print("this is prefixs: ", valid_prefixs)
+        mask, _ = memorized_llm_make_decision(text + decision, valid_prefixs)
+
         if len(prefixs) == 0:
-            if pid != -1:
-                prefixs = load_knowledge_formatting_conversation(pid)
-            else:
-                pass
-        else:
-            prefixs = context_decode(prefixs)
+            prefixs = []
 
-        pre_prompt = "Please refer to the previous discussion and generate corresponding answer for question: "
+        print("mask from llm", mask)
 
-        reply, context = memorized_llm_generate(pre_prompt + text, prefixs)
+        # # TODO check
+        # if len(prefixs) == 0:
+        #     if pid != -1:
+        #         prefixs = load_knowledge_formatting_conversation(pid)
+        #     else:
+        #         pass
+        # else:
+        #     prefixs = context_decode(prefixs)
+        if int(mask[0]) == 1 and cur_mask_list[0] == '0': # code
+            # code = read_r_files(pid)
 
-        response = {'errcode': 0, "reply": reply, "context": context_encode(context)}
-        print(response)
+            root='/home/auto/AutoHub/backend/userRepos'
+            try:
+                proj = Project.objects.get(id=pid)
+            except Project.DoesNotExist:
+                print(f"Project with id {pid} does not exist.")
+                return ""
+
+            user_repo_entries = UserProjectRepo.objects.filter(project_id=proj)
+            for entry in user_repo_entries:
+                user = entry.user_id.id
+                repo = entry.repo_id.name
+
+            # pwd = UserProjectRepo.objects.filter(project_id=project_id)
+            # pwd = os.path.join(root, 'user'+str(user), repo, 'backend/myApp/utils/ai_tools/')
+            pwd = os.path.join(root, 'user'+str(user), repo)
+            print(f'finding {pwd}')
+            code = print_tree(pwd)
+
+            # 确保代码内容不为空
+            if not code or not code.strip():
+                code = "项目代码为空或不可用"
+            valid_prefixs.append({"role": "user", "content": code})
+            cur_mask_list[0] = '1'
+        if int(mask[1]) == 1 and cur_mask_list[1] == '0': # user instruction
+            # pass
+            file_info = prepare_file()
+            valid_prefixs.append(file_info)
+            cur_mask_list[1] = '1'
+        if int(mask[2]) == 1 and cur_mask_list[2] == '0': # knowledge
+            knowledge = load_knowledge_formatting_conversation(pid)
+            for info in knowledge:
+                valid_prefixs.append(info)
+            cur_mask_list[2] = '1'
+
+        pre_prompt = "请使用中文进行回复 Please refer to the previous discussion and generate corresponding answer for question: "
+
+        reply, context = memorized_llm_generate(pre_prompt + text, valid_prefixs)
+        cur_mask_str = ''.join(cur_mask_list)
+        
+        response = {'errcode': 0, "reply": reply, "context": context_encode(context), 'cur_mask': cur_mask_str}
+        print(f"this is response: 这是回复：{response}")
         return JsonResponse(response)
 
 

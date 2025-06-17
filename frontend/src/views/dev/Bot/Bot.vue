@@ -943,7 +943,7 @@ import IssueList from "./IssueList.vue";
                 this.$message.error('获取规则列表失败');
                 console.error(err)
             } finally {
-                this.loadingRules = true;
+                this.loadingRules = false;
             }
         },
         async fetchLabels() {

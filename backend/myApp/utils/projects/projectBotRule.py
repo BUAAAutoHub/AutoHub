@@ -20,7 +20,7 @@ DEFAULT_LABELS = [
     # 状态类
     {"name": "help wanted", "color": "#008672", "description": "Extra attention needed"},
     {"name": "good first issue", "color": "#7057ff", "description": "Good for newcomers"},
-    {"name": "wontfix", "color": "#ffffff", "description": "Will not be fixed"},
+    {"name": "wontfix", "color": "#abcdef", "description": "Will not be fixed"},
     {"name": "duplicate", "color": "#cfd3d7", "description": "Duplicate issue"},
     
     # 优先级类
@@ -101,12 +101,14 @@ class BotRuleManager:
         try:
             result = json.loads(response)
         except json.JSONDecodeError:
-            return {
-                "is_valid": False
+            print(response)
+            return 1, {
+                "is_valid": False,
+                "message": "返回格式错误！",
+                "suggestions": []
             }
-            print('返回格式错误！')
         
-        return {
+        return 0, {
             "is_valid": result["is_valid"],
             "message": result["message"],
             "suggestions": result["suggestions"]

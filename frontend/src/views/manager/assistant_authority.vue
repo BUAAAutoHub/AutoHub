@@ -252,7 +252,8 @@ export default {
       console.log(this.user.id)
       axios.post("/api/management/showAssistantProjects", {teacherId: this.user.id, assistantId: item.id})
           .then((response) => {
-            console.log("errcode is:" + response.data.errcode)
+            console.log(response.data);
+            console.log("errcode is:" + response.data.errcode);
             if (response.data.errcode === 1) {
               window.alert("您没有权限")
             } else if (response.data.errcode === 2) {

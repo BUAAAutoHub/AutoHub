@@ -390,9 +390,9 @@
         </v-select>
         <p style="top:5%">
           标签
-          <v-btn small text :color="getTopicColor(user.topic)" @click="AIAdvice(newSonForm.outline)">
+          <!-- <v-btn small text :color="getTopicColor(user.topic)" @click="AIAdvice(newSonForm.outline)">
             AI建议
-          </v-btn>
+          </v-btn> -->
         </p>
         <v-select v-model="newSonForm.subTaskLabel" :items="labelList">
           <template v-slot:item="{ item }">
@@ -525,9 +525,9 @@
         </v-select>
         <p style="top:5%">
           标签
-          <v-btn small text :color="getTopicColor(user.topic)" @click="AIAdvice(editSonForm.outline)">
+          <!-- <v-btn small text :color="getTopicColor(user.topic)" @click="AIAdvice(editSonForm.outline)">
             AI建议
-          </v-btn>
+          </v-btn> -->
         </p>
         <v-select v-model="editSonForm.subTaskLabel" :items="labelList">
           <template v-slot:item="{ item }">

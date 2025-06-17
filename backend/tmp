@@ -1,13 +1,82 @@
 {
   "metrics": {
+    "coverage": "0.0",
+    "complexity": "0",
     "reliability_rating": "1.0",
-    "code_smells": "0",
+    "code_smells": "9",
     "duplicated_lines_density": "0.0",
+    "functions": "0",
     "security_rating": "1.0",
+    "classes": "35",
     "sqale_rating": "1.0",
     "bugs": "0",
+    "ncloc": "362",
     "files": "1",
     "vulnerabilities": "0"
   },
-  "issues": []
+  "issues": [
+    {
+      "type": "CODE_SMELL",
+      "message": "Complete the task associated to this \"TODO\" comment.",
+      "severity": "INFO",
+      "line": 171,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Complete the task associated to this \"TODO\" comment.",
+      "severity": "INFO",
+      "line": 230,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Rename class \"Pr_Task\" to match the regular expression ^_?([A-Z_][a-zA-Z0-9]*|[a-z_][a-z0-9_]*)$.",
+      "severity": "MINOR",
+      "line": 360,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Rename class \"Pr_Comment\" to match the regular expression ^_?([A-Z_][a-zA-Z0-9]*|[a-z_][a-z0-9_]*)$.",
+      "severity": "MINOR",
+      "line": 365,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Replace this \"null=True\" flag with \"blank=True\".",
+      "severity": "MAJOR",
+      "line": 42,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Replace this \"null=True\" flag with \"blank=True\".",
+      "severity": "MAJOR",
+      "line": 107,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Replace this \"null=True\" flag with \"blank=True\".",
+      "severity": "MAJOR",
+      "line": 327,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Replace this \"null=True\" flag with \"blank=True\".",
+      "severity": "MAJOR",
+      "line": 341,
+      "file": "your_code.py"
+    },
+    {
+      "type": "CODE_SMELL",
+      "message": "Replace this \"null=True\" flag with \"blank=True\".",
+      "severity": "MAJOR",
+      "line": 396,
+      "file": "your_code.py"
+    }
+  ]
 }

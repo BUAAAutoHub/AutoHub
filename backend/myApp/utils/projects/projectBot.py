@@ -249,8 +249,9 @@ class AutoReviewBot:
         # 应用规则
         for rule in all_rules:
             if rule["action"] == "comment":
-                result = self.rule_manager.evaluate_rule(rule, content)
-                if not result["is_valid"]:
+                ans, result = self.rule_manager.evaluate_rule(rule, content)
+                if ans == 0 and not result["is_valid"] and len(result["message"]) > 0:
+                    print(result["message"])
                     message = str(result["message"]) + "," + str(",".join(result["suggestions"]))
                     if message.strip():
                         comment_messages.append(message)
@@ -319,3 +320,35 @@ class AutoReview(View):
                 return  JsonResponse({"errcode": 1, "message": "fail review the bot"})
         except Exception as e:
             return JsonResponse({"errcode": 2, "message": str(e)})
+
+class PartReview(View):
+    """
+    Date        : 2025/5/24
+    Author      : sunyanfan
+    Description : 用户手动选择 PR/Issue 触发 Bot 进行部分审核
+    """
+
+    def post(self, request):
+        kwargs = json.loads(request.body)
+        project_id = kwargs.get("projectId")
+        repo_id = kwargs.get("repoId")
+        prs = kwargs.get("prs", [])
+        issues = kwargs.get("issues", [])
+
+        autoreview_bot = AutoReviewBot(project_id, repo_id)
+
+        if not autoreview_bot.active:
+            return JsonResponse({"errcode": 3, "message": "please enable the bot first"})
+
+        data = []
+
+        for pr_id in prs:
+            result = autoreview_bot.process_item("PR", pr_id)
+            data.extend(result)
+
+        for issue_id in issues:
+            result = autoreview_bot.process_item("ISSUE", issue_id)
+            data.extend(result)
+
+        return JsonResponse({"errcode": 0, "message": "successfully reviewed selected items", "data": data})
+

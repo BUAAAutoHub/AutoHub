@@ -9,12 +9,13 @@ export default {
     commit_view
   },
   methods: {
-    updateBranches() {
+    updateBranches(pullFlag = false) {
         this.branchBusy = true
         axios.post('/api/develop/getRepoBranches', {
             userId: this.user.id,
             repoId: this.selectedRepo.id,
-            projectId: this.proj.id
+            projectId: this.proj.id,
+            pullFlag: pullFlag
         }).then((res) => {
             if (res.data.errcode === 0) {
                 this.branches = res.data.data.map((cur, index) => {
@@ -79,7 +80,12 @@ export default {
 <!--  <p>I am branch view, I am aware that my proj = {{ proj }}, and that my selected repo = {{ selectedRepo }}</p>-->
 <v-row>
   <v-col cols="3">
-    <v-card-title>分支</v-card-title>
+    <v-card-title>
+      分支
+      <v-btn small color="primary" @click="updateBranches(true)" style="margin-left: 10px;">
+        同步分支
+      </v-btn>
+    </v-card-title>
     <div v-if="branchBusy">
         <v-card-title><v-progress-circular indeterminate></v-progress-circular>正在与服务器同步分支</v-card-title>
     </div>
@@ -97,7 +103,6 @@ export default {
       </v-list-item-group>
     </v-list>
       <v-skeleton-loader v-else type="list-item-three-line"></v-skeleton-loader>
-<!--      <v-progress-circular v-else indeterminate></v-progress-circular>-->
   </v-col>
 
   <v-divider vertical></v-divider>

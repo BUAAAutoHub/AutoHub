@@ -120,6 +120,7 @@ class watchFiles(View):
             return JsonResponse(response)
 
         files = MyFile.objects.filter(project_id_id=project_id)
+
         response = getResp(
             errcode  = SUCCESS,
             message  = "success"
@@ -128,3 +129,31 @@ class watchFiles(View):
         for file in files:
             response['data'].append({"name": file.name, "path": file.path})
         return JsonResponse(response)
+
+import os
+from myApp.models import MyFile
+
+def delete_file_by_id(file_id: int):
+    """
+    Date        : 2025/5/24
+    Author      : sunyanfan
+    Description : 根据文件 ID 删除 MyFile 表中的记录，并删除实际文件
+    """
+    try:
+        file_obj = MyFile.objects.get(id=file_id)
+        file_path = file_obj.path
+
+        # 删除数据库记录
+        file_obj.delete()
+
+        # 尝试删除物理文件
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        return True, f"file {file_path} deleted"
+
+    except MyFile.DoesNotExist:
+        return False, "file record does not exist"
+
+    except Exception as e:
+        return False, f"error: {str(e)}"

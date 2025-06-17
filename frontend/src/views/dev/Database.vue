@@ -144,6 +144,7 @@ export default {
         this.entries = tempEntries
       }).catch(err => {
         this.$message.error('获取文件列表失败')
+        console.log("获取文件列表失败")
         console.log(err)
       })
     },
