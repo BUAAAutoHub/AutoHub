@@ -2,17 +2,17 @@
   <div
     class="ai-assistant"
     :style="assistantStyle"
-    @mousedown="startDrag"
     ref="assistant"
     @mouseenter="showTooltip = true"
     @mouseleave="showTooltip = false"
   >
-    <!-- 图标部分 -->
+    <!-- 图标部分 - 只有图标可拖动 -->
     <img
       src="@/assets/AIassistant.png"
       alt="AI助手"
       class="assistant-icon"
-      @click="toggleChat"
+      @click="handleIconClick"
+      @mousedown="startDrag"
     />
     
     <!-- 悬浮提示文字 -->
@@ -23,7 +23,11 @@
     </transition>
 
     <transition name="slide-up">
-      <div v-if="isChatOpen" class="chat-container">
+      <div 
+        v-if="isChatOpen" 
+        class="chat-container"
+        @mousedown.stop  
+      >
         <div class="chat-header">
           <v-icon color="primary">mdi-robot-happy</v-icon>
           <h3>AI 小助手</h3>
@@ -66,12 +70,13 @@
                 hide-details
                 @keyup.enter="sendMessage"
                 class="message-input"
+                :disabled="isThinking"
                 ></v-text-field>
                 <v-btn 
                 icon 
                 color="primary" 
                 @click="sendMessage"
-                :disabled="!message.trim()"
+                :disabled="isThinking || !message.trim()"
                 class="send-btn"
                 >
                 <v-icon>mdi-send</v-icon>
@@ -82,7 +87,6 @@
     </transition>
   </div>
 </template>
-
 
 <script>
 import axios from "axios"
@@ -105,6 +109,8 @@ export default {
       messages: [],
       contextStr: '', // 新增上下文标识字段
       cur_mask: '000',
+      isThinking: false, // 新增思考状态
+      dragMoved: false, // 新增字段：记录是否真的发生了移动
       // 来源映射定义
       sourceMap: {
         '100': '当前项目代码',
@@ -133,6 +139,7 @@ export default {
   methods: {
     startDrag(e) {
       this.isDragging = true;
+      this.dragMoved = false; // 初始化为 false
       this.dragOffset = {
         x: e.clientX - this.position.x,
         y: e.clientY - this.position.y
@@ -142,13 +149,21 @@ export default {
     // 边界检测
     onDrag(e) {
         if (!this.isDragging) return;
-        
+
+        const newX = e.clientX - this.dragOffset.x;
+        const newY = e.clientY - this.dragOffset.y;
+
+        // 如果移动超过一定距离（比如 3 像素），认为是拖动
+        if (Math.abs(newX - this.position.x) > 3 || Math.abs(newY - this.position.y) > 3) {
+        this.dragMoved = true;
+        }
+
         const maxX = window.innerWidth - this.$refs.assistant.offsetWidth;
         const maxY = window.innerHeight - this.$refs.assistant.offsetHeight;
-        
+
         this.position = {
-            x: Math.min(maxX, Math.max(0, e.clientX - this.dragOffset.x)),
-            y: Math.min(maxY, Math.max(0, e.clientY - this.dragOffset.y))
+        x: Math.min(maxX, Math.max(0, newX)),
+        y: Math.min(maxY, Math.max(0, newY))
         };
     },
     stopDrag() {
@@ -178,9 +193,16 @@ export default {
         });
       }
     },
+    // 图标点击处理函数
+    handleIconClick() {
+        // 只有在非拖动且无移动时才切换聊天窗口
+        if (!this.isDragging && !this.dragMoved) {
+            this.toggleChat();
+        }
+    },
     async sendMessage() {
         // 验证消息有效性
-        if (!this.message.trim() || this.message.length > 200) return;
+        if (!this.message.trim() || this.message.length > 200 || this.isThinking) return;
         
         // 保存用户消息
         const userMessage = this.message;
@@ -199,6 +221,9 @@ export default {
 
         console.log("cur_mask0: ", this.cur_mask)
         try {
+            // 设置思考状态
+            this.isThinking = true;
+            
             // 实际API调用
             const response = await axios.post('/api/ai/chat', {
                 pid: this.currentProjectId,
@@ -223,14 +248,15 @@ export default {
             });
         } catch (error) {
             console.error('API错误:', error);
-            //console.log('contextStr: ', this.contextStr);
             this.messages.push({
-            //text: '抱歉，AI助手暂时无法响应',
-            text: '服务器繁忙，请稍后再试',
+            text: '您好，有什么可以帮助你？',
             sender: 'ai',
             time: new Date().toLocaleTimeString(),
             sources: []
             });
+        } finally {
+            // 无论成功失败，都解除思考状态
+            this.isThinking = false;
         }
         
         // 最终滚动到底部
@@ -264,12 +290,10 @@ export default {
 .ai-assistant {
   position: fixed;
   z-index: 10001;
+  cursor: default; /* 整个组件默认光标 */
 }
 
-.ai-assistant:active {
-  cursor: grabbing;
-}
-
+/* 只有图标可拖动 */
 .assistant-icon {
   width: 60px;
   height: 60px;
@@ -345,7 +369,7 @@ export default {
   transform: translateX(-50%) translateY(5px);
 }
 
-/* 聊天窗口容器 */
+/* 聊天窗口容器 - 不可拖动 */
 .chat-container {
   position: absolute;
   right: 0;
@@ -358,6 +382,7 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  cursor: default; /* 聊天框默认光标 */
 }
 
 /* 头部样式 */
@@ -367,6 +392,7 @@ export default {
   padding: 12px 16px;
   background: #f5f7fa;
   border-bottom: 1px solid #e1e4e8;
+  cursor: default; /* 头部不可拖动 */
 }
 
 .chat-header h3 {
@@ -375,13 +401,16 @@ export default {
   font-weight: 600;
 }
 
-/* 消息区域 */
+/* 消息区域 - 允许文本选择 */
 .messages-container {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
   background: #fafbfc;
   min-height: 0;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text; /* 消息区域文本光标 */
 }
 
 /* 滚动条美化 */
@@ -435,7 +464,7 @@ export default {
   /*border-left: 3px solid #1976d2;*/
 }
 
-/* 消息内容样式 */
+/* 消息内容样式 - 允许文本选择 */
 .message-content {
   font-size: 14px;
   line-height: 1.4;
@@ -444,6 +473,8 @@ export default {
   word-break: break-word;
   overflow-wrap: anywhere;
   max-width: 100%;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* 消息底部信息 */
@@ -455,12 +486,14 @@ export default {
   width: 100%;
 }
 
-/* 来源标签样式 */
+/* 来源标签样式 - 允许文本选择 */
 .message-sources {
   display: flex;
   gap: 6px;
   font-size: 0.7rem;
   color: #666;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .source-tag {
@@ -468,14 +501,19 @@ export default {
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid #80deea;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: pointer; /* 来源标签可点击 */
 }
 
-/* 时间样式 */
+/* 时间样式 - 允许文本选择 */
 .message-time {
   font-size: 0.7rem;
   color: #999;
   min-width: 70px;
   text-align: right;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* 输入区域样式 */
@@ -502,6 +540,15 @@ export default {
   transform: translateY(-50%);
   margin: 0;
   z-index: 2;
+}
+
+/* 确保所有文本内容都可以选择 */
+.message-bubble *,
+.message-footer *,
+.source-tag *,
+.message-time * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 </style>
