@@ -10,8 +10,8 @@ def validate_token(token):
     return False
 
 if __name__ == "__main__":
-    token="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"
-    command = ['gh', 'api', '-H', 'Accept: application/vnd.github.v3+json', '-H', 'Authorization: token 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', '/repos/BUAAAutoHub/AutoHub']
+    token="ghp_test"
+    command = ['gh', 'api', '-H', 'Accept: application/vnd.github.v3+json', '-H', 'Authorization: token ghp_test', '/repos/BUAAAutoHub/AutoHub']
     try:
         result = subprocess.run(command, capture_output=True, text=True, cwd="/home/auto/AutoHub/backend/userRepos/user2/AutoHub", check=True)
         print("Command output:", result.stdout)
